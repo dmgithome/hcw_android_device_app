@@ -1,0 +1,83 @@
+package com.hv.cabinet.ui.theme
+
+import androidx.compose.material3.Typography
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+
+private val BaseTextColor = Gray100
+
+val CabinetTypography = Typography(
+    displaySmall = TextStyle(
+        fontSize = 34.sp,
+        lineHeight = 40.sp,
+        fontWeight = FontWeight.SemiBold,
+        color = BaseTextColor
+    ),
+    headlineLarge = TextStyle(
+        fontSize = 30.sp,
+        lineHeight = 36.sp,
+        fontWeight = FontWeight.SemiBold,
+        color = BaseTextColor
+    ),
+    headlineMedium = TextStyle(
+        fontSize = 26.sp,
+        lineHeight = 32.sp,
+        fontWeight = FontWeight.SemiBold,
+        color = BaseTextColor
+    ),
+    headlineSmall = TextStyle(
+        fontSize = 22.sp,
+        lineHeight = 28.sp,
+        fontWeight = FontWeight.Medium,
+        color = BaseTextColor
+    ),
+    titleLarge = TextStyle(
+        fontSize = 20.sp,
+        lineHeight = 26.sp,
+        fontWeight = FontWeight.Medium,
+        color = BaseTextColor
+    ),
+    titleMedium = TextStyle(
+        fontSize = 18.sp,
+        lineHeight = 24.sp,
+        fontWeight = FontWeight.Medium,
+        color = BaseTextColor
+    ),
+    titleSmall = TextStyle(
+        fontSize = 16.sp,
+        lineHeight = 22.sp,
+        fontWeight = FontWeight.Medium,
+        color = BaseTextColor
+    ),
+    bodyLarge = TextStyle(
+        fontSize = 16.sp,
+        lineHeight = 22.sp,
+        fontWeight = FontWeight.Normal,
+        color = BaseTextColor
+    ),
+    bodyMedium = TextStyle(
+        fontSize = 14.sp,
+        lineHeight = 20.sp,
+        fontWeight = FontWeight.Normal,
+        color = BaseTextColor
+    ),
+    bodySmall = TextStyle(
+        fontSize = 13.sp,
+        lineHeight = 18.sp,
+        fontWeight = FontWeight.Normal,
+        color = BaseTextColor
+    ),
+    labelLarge = TextStyle(
+        fontSize = 14.sp,
+        lineHeight = 20.sp,
+        fontWeight = FontWeight.Medium,
+        color = BaseTextColor
+    ),
+    labelMedium = TextStyle(
+        fontSize = 12.sp,
+        lineHeight = 16.sp,
+        fontWeight = FontWeight.Medium,
+        color = BaseTextColor
+    )
+)
