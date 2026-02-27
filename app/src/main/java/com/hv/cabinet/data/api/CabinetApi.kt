@@ -16,8 +16,17 @@ interface CabinetApi {
     @GET("/api/v1/amis/user_info")
     suspend fun fetchUserInfo(): JsonElement
 
+    @GET("/api/cabinet/getAllCabinetList")
+    suspend fun fetchCabinets(@Query("cabinetGroupID") cabinetGroupID: Int? = null): JsonElement
+
     @GET("/api/inventory/callInventory")
     suspend fun callInventory(@Query("IP") ip: String): JsonElement
+
+    @GET("/api/locations/list")
+    suspend fun listLocations(): JsonElement
+
+    @GET("/api/locations/default")
+    suspend fun getDefaultLocation(): JsonElement
 
     @POST("/api/stock/getConsumeOrReturnConsumablesByBarcode")
     suspend fun resolveConsumables(@Body request: BarcodeBatchRequest): JsonElement

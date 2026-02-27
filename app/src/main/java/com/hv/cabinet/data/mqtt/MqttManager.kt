@@ -26,15 +26,18 @@ import org.eclipse.paho.client.mqttv3.MqttConnectOptions
 import org.eclipse.paho.client.mqttv3.MqttMessage
 import org.json.JSONObject
 import timber.log.Timber
-import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.resume
+import java.util.UUID
 
 sealed class InventoryMqttEvent {
     data class Tag(val epc: String) : InventoryMqttEvent()
     data class InventoryStatus(val type: String) : InventoryMqttEvent()
-    data class NfcCard(val cardNo: String) : InventoryMqttEvent()
+    data class NfcCard(
+        val readerId: String,
+        val value: String
+    ) : InventoryMqttEvent()
 }
 
 @Singleton
@@ -72,7 +75,9 @@ class MqttManager @Inject constructor(
                 return@withContext AppResult.Success(Unit)
             }
 
-            val clientId = BuildConfig.MQTT_CLIENT_ID_PREFIX + UUID.randomUUID().toString().take(8)
+            val clientId = appPreferences.getOrCreateMqttClientId {
+                BuildConfig.MQTT_CLIENT_ID_PREFIX + UUID.randomUUID().toString().take(8)
+            }
 
             if (client == null) {
                 client = MqttAndroidClient(context, serverUri, clientId).apply {
@@ -104,7 +109,7 @@ class MqttManager @Inject constructor(
 
             val options = MqttConnectOptions().apply {
                 isAutomaticReconnect = true
-                isCleanSession = true
+                isCleanSession = false
                 connectionTimeout = 10
                 keepAliveInterval = 20
                 if (cfg.mqttUsername.isNotBlank()) userName = cfg.mqttUsername
@@ -252,9 +257,9 @@ class MqttManager @Inject constructor(
                 }
 
                 topic.startsWith("dk25_nfc/card/") -> {
-                    val card = parseCardNo(payload)
-                    if (card.isNotBlank()) {
-                        _events.tryEmit(InventoryMqttEvent.NfcCard(card))
+                    val nfc = parseNfcCard(payload)
+                    if (nfc.value.isNotBlank()) {
+                        _events.tryEmit(nfc)
                     }
                 }
             }
@@ -279,14 +284,19 @@ class MqttManager @Inject constructor(
         }.getOrDefault(payload)
     }
 
-    private fun parseCardNo(payload: String): String {
-        if (payload.isBlank()) return ""
+    private fun parseNfcCard(payload: String): InventoryMqttEvent.NfcCard {
+        if (payload.isBlank()) return InventoryMqttEvent.NfcCard(readerId = "", value = "")
         return runCatching {
             val obj = JSONObject(payload)
-            obj.optString("cardNumber")
-                .ifBlank { obj.optString("cardNo") }
+            val readerId = obj.optString("ReaderId")
+                .ifBlank { obj.optString("readerId") }
+                .ifBlank { obj.optString("MAC") }
+            val value = obj.optString("Value")
                 .ifBlank { obj.optString("value") }
-        }.getOrDefault(payload)
+                .ifBlank { obj.optString("cardNumber") }
+                .ifBlank { obj.optString("cardNo") }
+            InventoryMqttEvent.NfcCard(readerId = readerId.trim(), value = value.trim())
+        }.getOrDefault(InventoryMqttEvent.NfcCard(readerId = "", value = payload.trim()))
     }
 
     private fun normalizeEpc(raw: String): String {

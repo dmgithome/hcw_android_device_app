@@ -1,0 +1,2 @@
+{"level":30,"time":1771912822767,"pid":93365,"hostname":"dmdeMacBook-Pro.local","msg":"config>{\"host\":\"192.168.143.34\",\"user\":\"znyj_spd\",\"password\":\"******\",\"database\":\"znyj_spd\",\"port\":33316}"}
+{"level":30,"time":1771912822767,"pid":93365,"hostname":"dmdeMacBook-Pro.local","msg":"MySQL MCP server running on stdio"}

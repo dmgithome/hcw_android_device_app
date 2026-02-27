@@ -1,5 +1,6 @@
 package com.hv.cabinet.data.api
 
+import androidx.compose.runtime.Immutable
 import com.hv.cabinet.core.IntOrStringSerializer
 import com.hv.cabinet.core.StringOrNumberSerializer
 import kotlinx.serialization.Serializable
@@ -13,7 +14,8 @@ data class LoginRequest(
 @Serializable
 data class NfcLoginRequest(
     val IP: String,
-    val cardNumber: String
+    val cardNumber: String,
+    val MAC: String = ""
 )
 
 @Serializable
@@ -35,6 +37,7 @@ data class BarcodeBatchRequest(
     val dataList: List<String>
 )
 
+@Immutable
 @Serializable
 data class ConsumableDto(
     @Serializable(with = IntOrStringSerializer::class)
@@ -90,4 +93,37 @@ data class CreateTakeAndReturnLogRequest(
     val takeList: List<SubmitLineItem>,
     val returnList: List<SubmitLineItem>,
     val to_location_id: String? = null
+)
+
+@Serializable
+data class CabinetDeviceDto(
+    @Serializable(with = IntOrStringSerializer::class)
+    val id: Int = 0,
+    val name: String = "",
+    val type: String = "",
+    val ipAddress: String = "",
+    val macAddress: String = "",
+    val status: String = ""
+)
+
+@Serializable
+data class LocationItemDto(
+    @Serializable(with = StringOrNumberSerializer::class)
+    val id: String = "",
+    val name: String = "",
+    val type: String? = null,
+    val is_active: Boolean = true,
+    val is_default_inbound_return: Boolean = false
+)
+
+@Serializable
+data class DefaultLocationDto(
+    @Serializable(with = StringOrNumberSerializer::class)
+    val id: String = "",
+    val name: String = ""
+)
+
+data class LocationOption(
+    val id: String,
+    val name: String
 )

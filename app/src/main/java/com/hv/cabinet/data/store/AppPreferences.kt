@@ -1,6 +1,7 @@
 package com.hv.cabinet.data.store
 
 import android.content.Context
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
@@ -33,6 +34,12 @@ class AppPreferences @Inject constructor(
         val mqttUsername = stringPreferencesKey("mqtt_username")
         val mqttPassword = stringPreferencesKey("mqtt_password")
         val cabinetIps = stringPreferencesKey("cabinet_ips")
+        val mqttClientId = stringPreferencesKey("mqtt_client_id")
+        val nfcFormatTransform = booleanPreferencesKey("nfc_format_transform")
+        val nfcFormatTransformStrict = booleanPreferencesKey("nfc_format_transform_strict")
+        val debugLogEnabled = booleanPreferencesKey("debug_log_enabled")
+        val perfLogEnabled = booleanPreferencesKey("perf_log_enabled")
+        val httpBodyLogEnabled = booleanPreferencesKey("http_body_log_enabled")
     }
 
     val sessionFlow: Flow<SessionInfo> = context.dataStore.data
@@ -64,7 +71,22 @@ class AppPreferences @Inject constructor(
                     ?.map { it.trim() }
                     ?.filter { it.isNotBlank() }
                     ?.ifEmpty { listOf("127.0.0.1") }
-                    ?: listOf("127.0.0.1")
+                    ?: listOf("127.0.0.1"),
+                mqttClientId = prefs[Keys.mqttClientId].orEmpty(),
+                nfcFormatTransform = prefs[Keys.nfcFormatTransform] ?: true,
+                nfcFormatTransformStrict = prefs[Keys.nfcFormatTransformStrict] ?: true
+            )
+        }
+
+    val debugConfigFlow: Flow<DebugConfig> = context.dataStore.data
+        .catch { e ->
+            if (e is IOException) emit(emptyPreferences()) else throw e
+        }
+        .map { prefs ->
+            DebugConfig(
+                debugLogEnabled = prefs[Keys.debugLogEnabled] ?: false,
+                perfLogEnabled = prefs[Keys.perfLogEnabled] ?: false,
+                httpBodyLogEnabled = prefs[Keys.httpBodyLogEnabled] ?: false
             )
         }
 
@@ -95,6 +117,29 @@ class AppPreferences @Inject constructor(
             prefs[Keys.mqttUsername] = config.mqttUsername
             prefs[Keys.mqttPassword] = config.mqttPassword
             prefs[Keys.cabinetIps] = config.cabinetIps.joinToString(",")
+            prefs[Keys.nfcFormatTransform] = config.nfcFormatTransform
+            prefs[Keys.nfcFormatTransformStrict] = config.nfcFormatTransformStrict
+        }
+    }
+
+    suspend fun getOrCreateMqttClientId(generator: () -> String): String {
+        var resolved = ""
+        context.dataStore.edit { prefs ->
+            val stored = prefs[Keys.mqttClientId].orEmpty()
+            resolved = if (stored.isNotBlank()) {
+                stored
+            } else {
+                generator().also { prefs[Keys.mqttClientId] = it }
+            }
+        }
+        return resolved
+    }
+
+    suspend fun saveDebugConfig(config: DebugConfig) {
+        context.dataStore.edit { prefs ->
+            prefs[Keys.debugLogEnabled] = config.debugLogEnabled
+            prefs[Keys.perfLogEnabled] = config.perfLogEnabled
+            prefs[Keys.httpBodyLogEnabled] = config.httpBodyLogEnabled
         }
     }
 }
@@ -114,5 +159,14 @@ data class DeviceConfig(
     val mqttBrokerUri: String,
     val mqttUsername: String,
     val mqttPassword: String,
-    val cabinetIps: List<String>
+    val cabinetIps: List<String>,
+    val mqttClientId: String = "",
+    val nfcFormatTransform: Boolean = true,
+    val nfcFormatTransformStrict: Boolean = true
+)
+
+data class DebugConfig(
+    val debugLogEnabled: Boolean = false,
+    val perfLogEnabled: Boolean = false,
+    val httpBodyLogEnabled: Boolean = false
 )

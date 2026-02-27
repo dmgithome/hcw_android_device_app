@@ -5,10 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.hv.cabinet.core.PerfMonitor
 import com.hv.cabinet.data.api.CabinetRepository
 import com.hv.cabinet.data.store.AppPreferences
-import com.hv.cabinet.domain.MessageLevel
 import com.hv.cabinet.domain.UiMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -65,16 +63,10 @@ class HomeViewModel @Inject constructor(
 
     private fun launchNavigation(key: String, navigate: () -> Unit) {
         if (_state.value.routeLocked) return
-        viewModelScope.launch {
-            _state.value = _state.value.copy(
-                routeLocked = true,
-                message = UiMessage("正在进入${if (key == "take") "耗材取用" else "耗材归还"}...", MessageLevel.Info)
-            )
-            PerfMonitor.mark("home_card_${key}_navigate_start")
-            navigate()
-            delay(450)
-            _state.value = _state.value.copy(routeLocked = false, message = UiMessage())
-        }
+        _state.value = _state.value.copy(routeLocked = true)
+        PerfMonitor.mark("home_card_${key}_navigate_start")
+        navigate()
+        // routeLocked 由目标页面的 consumeRouteLock() 解锁，无需人为延迟
     }
 }
 

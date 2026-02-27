@@ -1,34 +1,43 @@
 package com.hv.cabinet.feature.returning
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.hv.cabinet.core.PerfMonitor
 import com.hv.cabinet.domain.InventoryFlowState
 import com.hv.cabinet.ui.components.AppScaffold
-import com.hv.cabinet.ui.components.ConsumableListItem
-import com.hv.cabinet.ui.components.EmptyState
-import com.hv.cabinet.ui.components.FooterActionRow
+import com.hv.cabinet.ui.components.AppScaffoldVariant
+import com.hv.cabinet.ui.components.ConfirmButton
+import com.hv.cabinet.ui.components.ConsumableDataTable
+import com.hv.cabinet.ui.components.DEFAULT_PAGE_SIZE
+import com.hv.cabinet.ui.components.OutlinedConfirmButton
+import com.hv.cabinet.ui.components.PaginationFooter
 import com.hv.cabinet.ui.components.PrimaryButton
-import com.hv.cabinet.ui.components.StatusBanner
+import com.hv.cabinet.ui.components.ScanKeyboardHandler
+import com.hv.cabinet.ui.components.TableVariant
+import com.hv.cabinet.ui.components.WarningDialog
+import kotlin.math.ceil
 
 @Composable
 fun ReturnScreen(
@@ -36,7 +45,8 @@ fun ReturnScreen(
     onLogout: () -> Unit,
     viewModel: ReturnViewModel = hiltViewModel()
 ) {
-    val state by viewModel.state.collectAsState()
+    val state = viewModel.state.collectAsStateWithLifecycle().value
+    val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) {
         PerfMonitor.mark("return_screen_interactive")
@@ -48,110 +58,149 @@ fun ReturnScreen(
     }
 
     DisposableEffect(Unit) {
-        onDispose {
-            viewModel.onScreenLeave()
+        onDispose { viewModel.onScreenLeave() }
+    }
+
+    // Snackbar for messages
+    LaunchedEffect(state.message) {
+        if (state.message.visible) {
+            snackbarHostState.showSnackbar(state.message.text)
         }
     }
 
-    AppScaffold(
-        title = "耗材归还",
-        subtitle = "状态：${state.flowState.label()}",
-        onBack = onBack
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .padding(padding)
-                .fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            StatusBanner(message = state.message)
+    // Warning overlay state
+    var showWarnings by remember { mutableStateOf(false) }
+    LaunchedEffect(state.warningsNonce) {
+        if (state.warnings.isNotEmpty() && state.flowState == InventoryFlowState.Idle) {
+            showWarnings = true
+        }
+    }
 
-            if (state.flowState == InventoryFlowState.Error) {
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    TextButton(onClick = viewModel::retryStartInventory) {
-                        Text("盘点启动失败，点击重试")
-                    }
+    val userInfoText = "${state.userName} - ${state.userRole}".let {
+        if (it == " - ") "" else it
+    }
+
+    // Pagination state — managed here, no callback loop
+    var currentPage by remember { mutableIntStateOf(1) }
+    val total = state.items.size
+    val totalPages = maxOf(1, ceil(total.toDouble() / DEFAULT_PAGE_SIZE).toInt())
+    val clampedPage = currentPage.coerceIn(1, totalPages)
+    if (clampedPage != currentPage) currentPage = clampedPage
+
+    val pageItems = remember(state.items, clampedPage) {
+        val start = (clampedPage - 1) * DEFAULT_PAGE_SIZE
+        state.items.subList(start, minOf(start + DEFAULT_PAGE_SIZE, total))
+    }
+
+    // Root Box: AppScaffold + warning overlay in same Activity window
+    Box(modifier = Modifier.fillMaxSize()) {
+        AppScaffold(
+            title = "耗材屋",
+            onBack = onBack,
+            variant = AppScaffoldVariant.Business,
+            snackbarHostState = snackbarHostState,
+            actions = {
+                if (userInfoText.isNotBlank()) {
+                    Text(
+                        text = userInfoText,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) { padding ->
+            Column(
+                modifier = Modifier
+                    .padding(padding)
+                    .fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                OutlinedTextField(
-                    value = state.barcode,
-                    onValueChange = viewModel::updateBarcode,
-                    label = { Text("扫码/条码") },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true
-                )
-                PrimaryButton(
-                    text = "添加",
-                    enabled = true,
-                    onClick = viewModel::addBarcode
-                )
-            }
-
-            FooterActionRow(
-                primaryText = if (state.isInventoryBusy) "盘点中" else "开始盘点",
-                onPrimaryClick = viewModel::startInventory,
-                primaryEnabled = state.canStart,
-                secondaryText = "确认归还",
-                onSecondaryClick = viewModel::submit,
-                secondaryEnabled = state.canSubmit,
-                dangerText = "确认并登出",
-                onDangerClick = { viewModel.submitAndLogout(onLogout) },
-                dangerEnabled = state.canSubmit
-            )
-
-            if (state.warnings.isNotEmpty()) {
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    Column(
-                        modifier = Modifier.padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Text("识别异常", style = MaterialTheme.typography.titleSmall)
-                        state.warnings.forEach { warning ->
-                            Text(
-                                text = "• ${warning.message}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.tertiary
-                            )
-                        }
-                    }
-                }
-            }
-
-            if (state.items.isEmpty()) {
-                EmptyState(
-                    title = "暂无归还项",
-                    subtitle = "请点击“开始盘点”或手动输入条码后添加"
-                )
-            } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                // Title + Action buttons row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    items(state.items, key = { it.rfid }) { item ->
-                        ConsumableListItem(
-                            item = item,
-                            onRemove = viewModel::removeItem
+                    Text(
+                        text = "读码归还",
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        PrimaryButton(
+                            text = if (state.isInventoryBusy) "盘点进行中" else "开始盘点",
+                            enabled = state.canStart,
+                            loading = state.awaitingStartAck || state.flowState == InventoryFlowState.Starting,
+                            onClick = viewModel::startInventory
+                        )
+                        ConfirmButton(
+                            text = "确认归还",
+                            enabled = state.canSubmit,
+                            loading = state.isSubmitting,
+                            onClick = viewModel::submit
+                        )
+                        OutlinedConfirmButton(
+                            text = "确认归还并登出",
+                            enabled = state.canSubmit,
+                            onClick = { viewModel.submitAndLogout(onLogout) }
                         )
                     }
                 }
+
+                // Data table (fills remaining space)
+                if ((state.flowState == InventoryFlowState.Starting || state.awaitingStartAck) && state.items.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            CircularProgressIndicator(strokeWidth = 2.dp)
+                            Text(
+                                text = "正在启动盘点...",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                } else {
+                    ConsumableDataTable(
+                        items = pageItems,
+                        conflictRfids = state.conflictRfids,
+                        onRemove = viewModel::removeItem,
+                        variant = TableVariant.Return,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                    )
+                }
+
+                // Pagination footer
+                PaginationFooter(
+                    total = total,
+                    currentPage = clampedPage,
+                    onPageChange = { currentPage = it }
+                )
+
+                // Invisible barcode scanner handler
+                ScanKeyboardHandler(
+                    onScanned = { code ->
+                        viewModel.updateBarcode(code)
+                        viewModel.addBarcode()
+                    }
+                )
             }
         }
-    }
-}
 
-private fun InventoryFlowState.label(): String = when (this) {
-    InventoryFlowState.Idle -> "待命"
-    InventoryFlowState.Starting -> "启动中"
-    InventoryFlowState.WaitingAck -> "等待响应"
-    InventoryFlowState.Inventorying -> "盘点中"
-    InventoryFlowState.Submitting -> "提交中"
-    InventoryFlowState.Completed -> "已完成"
-    InventoryFlowState.Error -> "异常"
+        // Warning overlay — same window, no Dialog, key events stay with Activity
+        if (showWarnings) {
+            WarningDialog(
+                warnings = state.warnings,
+                onDismiss = { showWarnings = false }
+            )
+        }
+    }
 }

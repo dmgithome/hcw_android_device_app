@@ -27,56 +27,56 @@ val CabinetTypography = Typography(
         color = BaseTextColor
     ),
     headlineSmall = TextStyle(
-        fontSize = 22.sp,
-        lineHeight = 28.sp,
+        fontSize = 24.sp,
+        lineHeight = 30.sp,
         fontWeight = FontWeight.Medium,
         color = BaseTextColor
     ),
     titleLarge = TextStyle(
+        fontSize = 24.sp,
+        lineHeight = 30.sp,
+        fontWeight = FontWeight.Medium,
+        color = BaseTextColor
+    ),
+    titleMedium = TextStyle(
         fontSize = 20.sp,
         lineHeight = 26.sp,
         fontWeight = FontWeight.Medium,
         color = BaseTextColor
     ),
-    titleMedium = TextStyle(
+    titleSmall = TextStyle(
         fontSize = 18.sp,
         lineHeight = 24.sp,
         fontWeight = FontWeight.Medium,
         color = BaseTextColor
     ),
-    titleSmall = TextStyle(
-        fontSize = 16.sp,
-        lineHeight = 22.sp,
-        fontWeight = FontWeight.Medium,
-        color = BaseTextColor
-    ),
     bodyLarge = TextStyle(
-        fontSize = 16.sp,
-        lineHeight = 22.sp,
+        fontSize = 18.sp,
+        lineHeight = 24.sp,
         fontWeight = FontWeight.Normal,
         color = BaseTextColor
     ),
     bodyMedium = TextStyle(
-        fontSize = 14.sp,
-        lineHeight = 20.sp,
+        fontSize = 16.sp,
+        lineHeight = 22.sp,
         fontWeight = FontWeight.Normal,
         color = BaseTextColor
     ),
     bodySmall = TextStyle(
-        fontSize = 13.sp,
-        lineHeight = 18.sp,
+        fontSize = 15.sp,
+        lineHeight = 21.sp,
         fontWeight = FontWeight.Normal,
         color = BaseTextColor
     ),
     labelLarge = TextStyle(
-        fontSize = 14.sp,
-        lineHeight = 20.sp,
+        fontSize = 16.sp,
+        lineHeight = 22.sp,
         fontWeight = FontWeight.Medium,
         color = BaseTextColor
     ),
     labelMedium = TextStyle(
-        fontSize = 12.sp,
-        lineHeight = 16.sp,
+        fontSize = 14.sp,
+        lineHeight = 20.sp,
         fontWeight = FontWeight.Medium,
         color = BaseTextColor
     )

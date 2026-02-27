@@ -6,6 +6,8 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -22,11 +24,17 @@ object NetworkModule {
     @Singleton
     fun provideOkHttpClient(
         authInterceptor: AuthInterceptor,
-        baseUrlInterceptor: BaseUrlInterceptor
+        baseUrlInterceptor: BaseUrlInterceptor,
+        appPreferences: com.hv.cabinet.data.store.AppPreferences
     ): OkHttpClient {
+        val debugConfig = runCatching { runBlocking { appPreferences.debugConfigFlow.first() } }.getOrNull()
         val logging = HttpLoggingInterceptor().apply {
             level = if (BuildConfig.DEBUG) {
-                HttpLoggingInterceptor.Level.BODY
+                if (debugConfig?.httpBodyLogEnabled == true) {
+                    HttpLoggingInterceptor.Level.BODY
+                } else {
+                    HttpLoggingInterceptor.Level.BASIC
+                }
             } else {
                 HttpLoggingInterceptor.Level.NONE
             }
