@@ -39,14 +39,17 @@ fun HomeScreen(
     onNavigateTake: () -> Unit,
     onNavigateReturn: () -> Unit,
     onLogout: () -> Unit,
+    active: Boolean = true,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val state = viewModel.state.collectAsStateWithLifecycle().value
     val windowSpec = rememberCabinetWindowSpec()
 
-    LaunchedEffect(Unit) {
-        viewModel.consumeRouteLock()
-        PerfMonitor.mark("home_interactive")
+    LaunchedEffect(active) {
+        if (active) {
+            viewModel.consumeRouteLock()
+            PerfMonitor.mark("home_interactive")
+        }
     }
 
     AppScaffold(
@@ -132,7 +135,7 @@ fun HomeScreen(
     }
 
     // Logout confirmation overlay (Box overlay instead of AlertDialog)
-    if (state.showLogoutDialog) {
+    if (active && state.showLogoutDialog) {
         Box(
             modifier = Modifier
                 .fillMaxSize()

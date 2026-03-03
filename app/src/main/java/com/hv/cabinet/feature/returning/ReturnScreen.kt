@@ -43,18 +43,23 @@ import kotlin.math.ceil
 fun ReturnScreen(
     onBack: () -> Unit,
     onLogout: () -> Unit,
+    active: Boolean = true,
     viewModel: ReturnViewModel = hiltViewModel()
 ) {
     val state = viewModel.state.collectAsStateWithLifecycle().value
     val snackbarHostState = remember { SnackbarHostState() }
 
-    LaunchedEffect(Unit) {
-        PerfMonitor.mark("return_screen_interactive")
-        PerfMonitor.measure(
-            start = "home_card_return_pointerdown",
-            end = "return_screen_interactive",
-            label = "home_return_to_interactive"
-        )
+    LaunchedEffect(active) {
+        if (active) {
+            PerfMonitor.mark("return_screen_interactive")
+            PerfMonitor.measure(
+                start = "home_card_return_pointerdown",
+                end = "return_screen_interactive",
+                label = "home_return_to_interactive"
+            )
+        } else {
+            viewModel.onScreenLeave()
+        }
     }
 
     DisposableEffect(Unit) {
@@ -62,16 +67,16 @@ fun ReturnScreen(
     }
 
     // Snackbar for messages
-    LaunchedEffect(state.message) {
-        if (state.message.visible) {
+    LaunchedEffect(active, state.message) {
+        if (active && state.message.visible) {
             snackbarHostState.showSnackbar(state.message.text)
         }
     }
 
     // Warning overlay state
     var showWarnings by remember { mutableStateOf(false) }
-    LaunchedEffect(state.warningsNonce) {
-        if (state.warnings.isNotEmpty() && state.flowState == InventoryFlowState.Idle) {
+    LaunchedEffect(active, state.warningsNonce) {
+        if (active && state.warnings.isNotEmpty() && state.flowState == InventoryFlowState.Idle) {
             showWarnings = true
         }
     }
@@ -98,6 +103,7 @@ fun ReturnScreen(
             title = "耗材屋",
             onBack = onBack,
             variant = AppScaffoldVariant.Business,
+            lightweight = true,
             snackbarHostState = snackbarHostState,
             actions = {
                 if (userInfoText.isNotBlank()) {
@@ -186,17 +192,19 @@ fun ReturnScreen(
                 )
 
                 // Invisible barcode scanner handler
-                ScanKeyboardHandler(
-                    onScanned = { code ->
-                        viewModel.updateBarcode(code)
-                        viewModel.addBarcode()
-                    }
-                )
+                if (active) {
+                    ScanKeyboardHandler(
+                        onScanned = { code ->
+                            viewModel.updateBarcode(code)
+                            viewModel.addBarcode()
+                        }
+                    )
+                }
             }
         }
 
         // Warning overlay — same window, no Dialog, key events stay with Activity
-        if (showWarnings) {
+        if (active && showWarnings) {
             WarningDialog(
                 warnings = state.warnings,
                 onDismiss = { showWarnings = false }

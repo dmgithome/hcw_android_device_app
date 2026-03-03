@@ -25,10 +25,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.hv.cabinet.core.PerfMonitor
-import com.hv.cabinet.feature.home.HomeScreen
 import com.hv.cabinet.feature.login.LoginScreen
-import com.hv.cabinet.feature.returning.ReturnScreen
-import com.hv.cabinet.feature.take.TakeScreen
 
 @Composable
 fun CabinetApp() {
@@ -91,33 +88,7 @@ private fun CabinetNavHost(
         }
 
         composable(AppRoutes.HOME) {
-            HomeScreen(
-                onNavigateTake = { navActions.toTake() },
-                onNavigateReturn = { navActions.toReturning() },
-                onLogout = { navActions.toLogin() }
-            )
-        }
-
-        composable(AppRoutes.TAKE) {
-            TakeScreen(
-                onBack = {
-                    val popped = navController.popBackStack()
-                    if (!popped) {
-                        navActions.toHome()
-                    }
-                },
-                onLogout = { navActions.toLogin() }
-            )
-        }
-
-        composable(AppRoutes.RETURNING) {
-            ReturnScreen(
-                onBack = {
-                    val popped = navController.popBackStack()
-                    if (!popped) {
-                        navActions.toHome()
-                    }
-                },
+            WorkspaceScreen(
                 onLogout = { navActions.toLogin() }
             )
         }
@@ -131,12 +102,6 @@ private fun onDestinationChanged(destination: NavDestination) {
         AppRoutes.HOME -> {
             PerfMonitor.measure("router_before_each_start_home", "router_after_each_end_home", "router_home_cost")
         }
-        AppRoutes.TAKE -> {
-            PerfMonitor.measure("router_before_each_start_take", "router_after_each_end_take", "router_take_cost")
-        }
-        AppRoutes.RETURNING -> {
-            PerfMonitor.measure("router_before_each_start_returning", "router_after_each_end_returning", "router_return_cost")
-        }
     }
 }
 
@@ -147,28 +112,6 @@ private class CabinetNavActions(
         PerfMonitor.mark("router_before_each_start_home")
         navController.navigate(AppRoutes.HOME) {
             popUpTo(AppRoutes.LOGIN) { inclusive = true }
-            launchSingleTop = true
-            restoreState = true
-        }
-    }
-
-    fun toTake() {
-        PerfMonitor.mark("router_before_each_start_take")
-        navController.navigate(AppRoutes.TAKE) {
-            popUpTo(navController.graph.findStartDestination().id) {
-                saveState = true
-            }
-            launchSingleTop = true
-            restoreState = true
-        }
-    }
-
-    fun toReturning() {
-        PerfMonitor.mark("router_before_each_start_returning")
-        navController.navigate(AppRoutes.RETURNING) {
-            popUpTo(navController.graph.findStartDestination().id) {
-                saveState = true
-            }
             launchSingleTop = true
             restoreState = true
         }

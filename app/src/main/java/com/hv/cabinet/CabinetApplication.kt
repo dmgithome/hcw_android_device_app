@@ -2,32 +2,57 @@ package com.hv.cabinet
 
 import android.app.Application
 import android.util.Log
+import com.hv.cabinet.core.AppResult
 import com.hv.cabinet.core.PerfMonitor
-import com.hv.cabinet.data.store.AppPreferences
+import com.hv.cabinet.data.mqtt.MqttManager
+import com.hv.cabinet.data.store.DebugConfigProvider
 import dagger.hilt.android.HiltAndroidApp
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
 
 @HiltAndroidApp
 class CabinetApplication : Application() {
     @Inject
-    lateinit var appPreferences: AppPreferences
+    lateinit var debugConfigProvider: DebugConfigProvider
+
+    @Inject
+    lateinit var mqttManager: MqttManager
+
+    private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     override fun onCreate() {
         super.onCreate()
-        val debugConfig = runCatching {
-            runBlocking { appPreferences.debugConfigFlow.first() }
-        }.getOrNull()
-
-        PerfMonitor.setEnabled(debugConfig?.perfLogEnabled == true)
+        PerfMonitor.setEnabled(false)
         Timber.plant(
-            when {
-                BuildConfig.DEBUG && debugConfig?.debugLogEnabled == true -> Timber.DebugTree()
-                else -> QuietTree()
-            }
+            if (BuildConfig.DEBUG) ConfigurableDebugTree(debugConfigProvider) else QuietTree()
         )
+
+        applicationScope.launch {
+            debugConfigProvider.state.collectLatest { cfg ->
+                PerfMonitor.setEnabled(cfg.perfLogEnabled)
+            }
+        }
+        applicationScope.launch {
+            val result = mqttManager.subscribeNfcTopic()
+            if (result is AppResult.Failure) {
+                Timber.w("NFC MQTT subscribe failed on app start: %s", result.error.message)
+            }
+        }
+    }
+}
+
+private class ConfigurableDebugTree(
+    private val debugConfigProvider: DebugConfigProvider
+) : Timber.DebugTree() {
+    override fun log(priority: Int, tag: String?, message: String, t: Throwable?) {
+        val debugEnabled = debugConfigProvider.isDebugLogEnabled()
+        if (!debugEnabled && priority < Log.WARN) return
+        super.log(priority, tag, message, t)
     }
 }
 

@@ -169,6 +169,10 @@ class MqttManager @Inject constructor(
         subscribe(TOPIC_NFC_CARD)
     }
 
+    suspend fun unsubscribeNfcTopic() = withContext(dispatchers.io) {
+        unsubscribe(TOPIC_NFC_CARD)
+    }
+
     suspend fun unsubscribeInventoryTopics() = withContext(dispatchers.io) {
         unsubscribe(TOPIC_RFID_TAGS)
         unsubscribe(TOPIC_RFID_INVENTORY_STATUS)
@@ -176,6 +180,9 @@ class MqttManager @Inject constructor(
 
     private suspend fun subscribe(topic: String): AppResult<Unit> = withContext(dispatchers.io) {
         runCatching {
+            if (connected && client?.isConnected == true && subscribedTopics.contains(topic)) {
+                return@withContext AppResult.Success(Unit)
+            }
             val c = client ?: return@withContext AppResult.Failure(AppError.Network("MQTT 未初始化"))
             val result = suspendCancellableCoroutine<Boolean> { cont ->
                 c.subscribe(topic, 1, null, object : IMqttActionListener {

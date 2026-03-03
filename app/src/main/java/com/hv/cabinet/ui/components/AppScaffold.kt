@@ -51,6 +51,7 @@ fun AppScaffold(
     onBack: (() -> Unit)? = null,
     actions: @Composable RowScope.() -> Unit = {},
     variant: AppScaffoldVariant = AppScaffoldVariant.Business,
+    lightweight: Boolean = false,
     showTopBar: Boolean = true,
     snackbarHostState: SnackbarHostState? = null,
     @DrawableRes backgroundImageRes: Int? = null,
@@ -73,17 +74,29 @@ fun AppScaffold(
         }
     }
 
-    Box(
-        modifier = Modifier
+    val baseBackground = if (lightweight) Color(0xFF061327) else Color.Transparent
+
+    val rootModifier = if (lightweight) {
+        Modifier
+            .fillMaxSize()
+            .background(baseBackground)
+    } else {
+        Modifier
             .fillMaxSize()
             .background(backgroundBrush)
+    }
+
+    Box(
+        modifier = rootModifier
     ) {
-        BackgroundLayers(
-            variant = variant,
-            painter = backgroundPainter,
-            perfLite = perfLite,
-            windowSpec = windowSpec
-        )
+        if (!lightweight) {
+            BackgroundLayers(
+                variant = variant,
+                painter = backgroundPainter,
+                perfLite = perfLite,
+                windowSpec = windowSpec
+            )
+        }
 
         Scaffold(
             modifier = Modifier.fillMaxSize(),
@@ -101,14 +114,24 @@ fun AppScaffold(
             },
             topBar = {
                 if (showTopBar) {
-                    AppTopBar(
-                        title = title,
-                        subtitle = subtitle,
-                        onBack = onBack,
-                        actions = actions,
-                        variant = variant,
-                        windowSpec = windowSpec
-                    )
+                    if (lightweight) {
+                        SimpleTopBar(
+                            title = title,
+                            subtitle = subtitle,
+                            onBack = onBack,
+                            actions = actions,
+                            windowSpec = windowSpec
+                        )
+                    } else {
+                        AppTopBar(
+                            title = title,
+                            subtitle = subtitle,
+                            onBack = onBack,
+                            actions = actions,
+                            variant = variant,
+                            windowSpec = windowSpec
+                        )
+                    }
                 }
             }
         ) { inner ->
@@ -122,6 +145,66 @@ fun AppScaffold(
                 )
             )
         }
+    }
+}
+
+@Composable
+private fun SimpleTopBar(
+    title: String,
+    subtitle: String?,
+    onBack: (() -> Unit)?,
+    actions: @Composable RowScope.() -> Unit,
+    windowSpec: CabinetWindowSpec
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+                horizontal = windowSpec.topBarOuterPaddingHorizontal,
+                vertical = windowSpec.topBarOuterPaddingVertical
+            ),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (onBack != null) {
+            IconButton(
+                onClick = onBack,
+                modifier = Modifier
+                    .size(40.dp)
+            ) {
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "返回",
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
+
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(start = if (onBack != null) 6.dp else 0.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            if (!subtitle.isNullOrBlank()) {
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            content = actions
+        )
     }
 }
 

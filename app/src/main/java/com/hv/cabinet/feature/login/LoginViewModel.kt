@@ -65,7 +65,6 @@ class LoginViewModel @Inject constructor(
                 )
             }
         }
-
         viewModelScope.launch {
             val subscribe = mqttManager.subscribeNfcTopic()
             if (subscribe is AppResult.Failure) {
@@ -298,9 +297,6 @@ class LoginViewModel @Inject constructor(
             nfcCardNo = resolvedCard
         )
 
-        if (_state.value.tab != LoginTab.Nfc) {
-            return
-        }
         if (readerId.isBlank()) {
             _state.value = _state.value.copy(
                 message = UiMessage("未获取到读卡器编号 ReaderId", MessageLevel.Error)

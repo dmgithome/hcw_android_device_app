@@ -35,6 +35,9 @@
 - MQTT Broker：`tcp://172.25.5.250:1883`
 
 登录页可修改并持久化设备配置（DataStore）。
+MQTT 的 NFC 监听为应用运行期常驻开启，无需切换到“NFC 登录”页签即可触发刷卡登录。
+取用页的“目标位置”采用内存缓存与首页预热策略，首次无缓存时加载，后续进入优先秒开并后台刷新。
+登录后的“首页/取用/归还”采用工作区常驻切换，不再每次切页重建页面。
 
 ## 协议对齐（不变）
 
@@ -67,7 +70,14 @@ cd /Users/dm/code/hcw_android_device_app
 /Users/dm/code/hcw_android_device_app/scripts/build_debug.sh
 /Users/dm/code/hcw_android_device_app/scripts/build_release.sh
 /Users/dm/code/hcw_android_device_app/scripts/install_debug.sh
+# 指定设备（自动按 5555 端口连接）
+/Users/dm/code/hcw_android_device_app/scripts/install_debug.sh 192.168.31.134
 ```
+
+说明：
+
+- `install_debug.sh` 安装 debug 包后会自动执行一次设备侧 `speed` 编译优化，减少首次冷启动卡顿。
+- 如设备已通过 `adb connect` 连接，可不传 IP 直接执行脚本。
 
 产物：
 

@@ -31,6 +31,18 @@ class CabinetRepository @Inject constructor(
     private val appPreferences: AppPreferences,
     private val dispatchers: AppDispatchers
 ) {
+    companion object {
+        private const val TAKE_TARGET_CACHE_TTL_MS = 5 * 60 * 1000L
+    }
+
+    private data class TakeTargetCache(
+        val items: List<LocationOption>,
+        val updatedAtMs: Long
+    )
+
+    @Volatile
+    private var takeTargetCache: TakeTargetCache? = null
+
     suspend fun loginByAccount(userName: String, password: String): AppResult<SessionInfo> =
         performLogin(
             loginCall = { api.login(LoginRequest(userName = userName, password = password)) },
@@ -142,19 +154,36 @@ class CabinetRepository @Inject constructor(
         }
     }
 
-    suspend fun fetchTakeTargetLocations(): AppResult<List<LocationOption>> = withContext(dispatchers.io) {
+    fun peekTakeTargetLocationsCache(): List<LocationOption> = takeTargetCache?.items.orEmpty()
+
+    suspend fun prefetchTakeTargetLocations() {
+        runCatching { fetchTakeTargetLocations(forceRefresh = false) }
+    }
+
+    suspend fun fetchTakeTargetLocations(forceRefresh: Boolean = false): AppResult<List<LocationOption>> = withContext(dispatchers.io) {
+        val cached = takeTargetCache
+        val now = System.currentTimeMillis()
+        if (!forceRefresh && cached != null && now - cached.updatedAtMs <= TAKE_TARGET_CACHE_TTL_MS) {
+            return@withContext AppResult.Success(cached.items)
+        }
+
         runCatching {
-            val listResp = api.listLocations()
+            val (listResp, defaultResp) = coroutineScope {
+                val listDeferred = async { api.listLocations() }
+                val defaultDeferred = async { runCatching { api.getDefaultLocation() }.getOrNull() }
+                listDeferred.await() to defaultDeferred.await()
+            }
             if (!ApiParser.isSuccess(listResp)) {
                 return@withContext AppResult.Failure(
                     AppError.Business(ApiParser.message(listResp).ifBlank { "获取地点列表失败" })
                 )
             }
 
-            val defaultLocationId = runCatching {
-                val defaultResp = api.getDefaultLocation()
-                if (ApiParser.isSuccess(defaultResp)) decodeDefaultLocationId(defaultResp) else null
-            }.getOrNull()
+            val defaultLocationId = if (defaultResp != null && ApiParser.isSuccess(defaultResp)) {
+                decodeDefaultLocationId(defaultResp)
+            } else {
+                null
+            }
 
             val items = decodeLocationItems(listResp)
                 .filter { it.is_active }
@@ -163,6 +192,10 @@ class CabinetRepository @Inject constructor(
                 .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.name.lowercase(Locale.getDefault()) })
                 .map { LocationOption(id = it.id, name = it.name.ifBlank { it.id }) }
 
+            takeTargetCache = TakeTargetCache(
+                items = items,
+                updatedAtMs = System.currentTimeMillis()
+            )
             AppResult.Success(items)
         }.getOrElse {
             Timber.e(it, "fetchTakeTargetLocations failed")

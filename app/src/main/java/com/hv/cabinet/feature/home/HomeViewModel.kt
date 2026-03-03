@@ -21,6 +21,7 @@ class HomeViewModel @Inject constructor(
 ) : ViewModel() {
     private val _state = MutableStateFlow(HomeUiState())
     val state: StateFlow<HomeUiState> = _state.asStateFlow()
+    private var takeLocationsPrefetched = false
 
     init {
         viewModelScope.launch {
@@ -29,6 +30,12 @@ class HomeViewModel @Inject constructor(
                     userName = session.userName,
                     userRole = session.userRole
                 )
+                if (!takeLocationsPrefetched && session.token.isNotBlank()) {
+                    takeLocationsPrefetched = true
+                    viewModelScope.launch {
+                        repository.prefetchTakeTargetLocations()
+                    }
+                }
             }
         }
     }

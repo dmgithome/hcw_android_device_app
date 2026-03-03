@@ -27,8 +27,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Inventory2
 import com.hv.cabinet.domain.ConsumableUiModel
 
 // 顶层颜色常量
@@ -56,20 +54,26 @@ fun ConsumableDataTable(
     variant: TableVariant,
     modifier: Modifier = Modifier
 ) {
+    if (items.isEmpty()) {
+        Box(
+            modifier = modifier.fillMaxWidth(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "暂无可提交项，请先扫码或通过 RFID 读码添加",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        return
+    }
     val columns = remember(variant) { buildColumnDefs(variant) }
     val totalWidth = remember(columns) {
         columns.sumOf { it.width.value.toDouble() }.dp + (columns.size * 8).dp
     }
     val scrollState = rememberScrollState()
-
-    if (items.isEmpty()) {
-        EmptyState(
-            title = "暂无耗材数据",
-            subtitle = "请先扫码或通过 RFID 读码添加",
-            icon = Icons.Outlined.Inventory2,
-            modifier = modifier
-        )
-        return
+    val conflictSet = remember(conflictRfids) {
+        conflictRfids.asSequence().map { it.lowercase() }.toSet()
     }
 
     // Single horizontalScroll wrapping the entire table
@@ -102,7 +106,7 @@ fun ConsumableDataTable(
             // Body rows
             LazyColumn(modifier = Modifier.fillMaxWidth()) {
                 itemsIndexed(items, key = { _, item -> item.rfid }) { index, item ->
-                    val isConflict = conflictRfids.any { it.equals(item.rfid, ignoreCase = true) }
+                    val isConflict = conflictSet.contains(item.rfid.lowercase())
                     val rowBg = if (isConflict) ConflictRowBg else if (index % 2 == 0) RowEvenBg else RowOddBg
 
                     val conflictBorderModifier = if (isConflict) {

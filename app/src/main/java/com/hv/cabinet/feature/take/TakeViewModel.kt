@@ -1,6 +1,7 @@
 package com.hv.cabinet.feature.take
 
 import com.hv.cabinet.core.AppResult
+import com.hv.cabinet.core.PerfMonitor
 import com.hv.cabinet.data.api.CabinetRepository
 import com.hv.cabinet.data.api.LocationOption
 import com.hv.cabinet.data.api.ScanByBarcodeResponseDto
@@ -41,7 +42,11 @@ class TakeViewModel @Inject constructor(
     }
 
     init {
-        loadTargetLocations()
+        val cached = repository.peekTakeTargetLocationsCache()
+        if (cached.isNotEmpty()) {
+            _takeState.value = _takeState.value.copy(targetLocationOptions = cached)
+        }
+        loadTargetLocations(forceRefresh = cached.isEmpty())
     }
 
     fun updateTargetLocation(value: String) {
@@ -113,10 +118,13 @@ class TakeViewModel @Inject constructor(
         )
     }
 
-    private fun loadTargetLocations() {
+    private fun loadTargetLocations(forceRefresh: Boolean = false) {
         viewModelScope.launch {
-            _takeState.value = _takeState.value.copy(loadingTargetLocations = true)
-            when (val result = repository.fetchTakeTargetLocations()) {
+            if (_takeState.value.targetLocationOptions.isEmpty()) {
+                _takeState.value = _takeState.value.copy(loadingTargetLocations = true)
+            }
+            PerfMonitor.mark("take_location_options_load_start")
+            when (val result = repository.fetchTakeTargetLocations(forceRefresh = forceRefresh)) {
                 is AppResult.Success -> {
                     val selectedId = _takeState.value.targetLocationId
                     val selectedName = result.value.firstOrNull { it.id == selectedId }?.name.orEmpty()
@@ -124,6 +132,12 @@ class TakeViewModel @Inject constructor(
                         loadingTargetLocations = false,
                         targetLocationOptions = result.value,
                         targetLocationName = selectedName
+                    )
+                    PerfMonitor.mark("take_location_options_load_end")
+                    PerfMonitor.measure(
+                        start = "take_location_options_load_start",
+                        end = "take_location_options_load_end",
+                        label = "take_location_options_load_cost"
                     )
                 }
 
