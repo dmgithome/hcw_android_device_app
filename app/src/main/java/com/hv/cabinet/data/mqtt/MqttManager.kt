@@ -10,8 +10,12 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -26,15 +30,43 @@ import org.eclipse.paho.client.mqttv3.MqttConnectOptions
 import org.eclipse.paho.client.mqttv3.MqttMessage
 import org.json.JSONObject
 import timber.log.Timber
-import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.resume
+import java.util.UUID
+
+enum class MqttConnectionState {
+    Checking,
+    Connected,
+    Disconnected
+}
+
+data class MqttConnectionStatus(
+    val state: MqttConnectionState = MqttConnectionState.Checking,
+    val reason: String = ""
+) {
+    val badgeText: String
+        get() = when (state) {
+            MqttConnectionState.Checking -> "MQTT 探测中"
+            MqttConnectionState.Connected -> "MQTT 已连接"
+            MqttConnectionState.Disconnected -> "MQTT 未连接"
+        }
+
+    val connected: Boolean?
+        get() = when (state) {
+            MqttConnectionState.Checking -> null
+            MqttConnectionState.Connected -> true
+            MqttConnectionState.Disconnected -> false
+        }
+}
 
 sealed class InventoryMqttEvent {
     data class Tag(val epc: String) : InventoryMqttEvent()
     data class InventoryStatus(val type: String) : InventoryMqttEvent()
-    data class NfcCard(val cardNo: String) : InventoryMqttEvent()
+    data class NfcCard(
+        val readerId: String,
+        val value: String
+    ) : InventoryMqttEvent()
 }
 
 @Singleton
@@ -44,6 +76,7 @@ class MqttManager @Inject constructor(
     private val dispatchers: AppDispatchers
 ) {
     companion object {
+        private const val PROBE_INTERVAL_MS = 60_000L
         const val TOPIC_RFID_TAGS = "table/rfid/fast_tag/#"
         const val TOPIC_RFID_INVENTORY_STATUS = "table/rfid/inventory_status/#"
         const val TOPIC_NFC_CARD = "dk25_nfc/card/#"
@@ -57,28 +90,49 @@ class MqttManager @Inject constructor(
 
     private val _events = MutableSharedFlow<InventoryMqttEvent>(extraBufferCapacity = 256)
     val events: SharedFlow<InventoryMqttEvent> = _events.asSharedFlow()
+    private val _connectionStatus = MutableStateFlow(MqttConnectionStatus())
+    val connectionStatus: StateFlow<MqttConnectionStatus> = _connectionStatus.asStateFlow()
+
+    init {
+        scope.launch {
+            while (true) {
+                ensureConnected()
+                delay(PROBE_INTERVAL_MS)
+            }
+        }
+    }
 
     suspend fun ensureConnected(): AppResult<Unit> = withContext(dispatchers.io) {
         runCatching {
             val cfg = appPreferences.deviceConfigFlow.first()
             val serverUri = cfg.mqttBrokerUri.trim()
             if (serverUri.isBlank()) {
+                updateConnectionStatus(
+                    MqttConnectionStatus(
+                        state = MqttConnectionState.Disconnected,
+                        reason = "MQTT 地址为空"
+                    )
+                )
                 return@withContext AppResult.Failure(AppError.Business("MQTT 地址不能为空"))
             }
 
             if (client != null && clientServerUri != serverUri) {
                 recreateClient(serverUri)
             } else if (connected && client?.isConnected == true) {
+                updateConnectionStatus(MqttConnectionStatus(state = MqttConnectionState.Connected))
                 return@withContext AppResult.Success(Unit)
             }
 
-            val clientId = BuildConfig.MQTT_CLIENT_ID_PREFIX + UUID.randomUUID().toString().take(8)
+            val clientId = appPreferences.getOrCreateMqttClientId {
+                BuildConfig.MQTT_CLIENT_ID_PREFIX + UUID.randomUUID().toString().take(8)
+            }
 
             if (client == null) {
                 client = MqttAndroidClient(context, serverUri, clientId).apply {
                     setCallback(object : MqttCallbackExtended {
                         override fun connectComplete(reconnect: Boolean, serverURI: String?) {
                             connected = true
+                            updateConnectionStatus(MqttConnectionStatus(state = MqttConnectionState.Connected))
                             Timber.i("MQTT connected: reconnect=$reconnect, uri=$serverURI")
                             if (reconnect) {
                                 scope.launch {
@@ -89,6 +143,12 @@ class MqttManager @Inject constructor(
 
                         override fun connectionLost(cause: Throwable?) {
                             connected = false
+                            updateConnectionStatus(
+                                MqttConnectionStatus(
+                                    state = MqttConnectionState.Disconnected,
+                                    reason = cause?.message.orEmpty()
+                                )
+                            )
                             Timber.e(cause, "MQTT lost")
                         }
 
@@ -104,7 +164,7 @@ class MqttManager @Inject constructor(
 
             val options = MqttConnectOptions().apply {
                 isAutomaticReconnect = true
-                isCleanSession = true
+                isCleanSession = false
                 connectionTimeout = 10
                 keepAliveInterval = 20
                 if (cfg.mqttUsername.isNotBlank()) userName = cfg.mqttUsername
@@ -127,13 +187,27 @@ class MqttManager @Inject constructor(
 
             if (!connectResult) {
                 connected = false
+                updateConnectionStatus(
+                    MqttConnectionStatus(
+                        state = MqttConnectionState.Disconnected,
+                        reason = "MQTT 连接失败"
+                    )
+                )
                 return@withContext AppResult.Failure(AppError.Network("MQTT 连接失败"))
             }
             connected = true
+            updateConnectionStatus(MqttConnectionStatus(state = MqttConnectionState.Connected))
             AppResult.Success(Unit)
         }.getOrElse {
             Timber.e(it, "ensureConnected failed")
-            AppResult.Failure(AppError.Network(it.message ?: "MQTT 连接失败"))
+            val reason = it.message ?: "MQTT 连接失败"
+            updateConnectionStatus(
+                MqttConnectionStatus(
+                    state = MqttConnectionState.Disconnected,
+                    reason = reason
+                )
+            )
+            AppResult.Failure(AppError.Network(reason))
         }
     }
 
@@ -164,6 +238,10 @@ class MqttManager @Inject constructor(
         subscribe(TOPIC_NFC_CARD)
     }
 
+    suspend fun unsubscribeNfcTopic() = withContext(dispatchers.io) {
+        unsubscribe(TOPIC_NFC_CARD)
+    }
+
     suspend fun unsubscribeInventoryTopics() = withContext(dispatchers.io) {
         unsubscribe(TOPIC_RFID_TAGS)
         unsubscribe(TOPIC_RFID_INVENTORY_STATUS)
@@ -171,6 +249,9 @@ class MqttManager @Inject constructor(
 
     private suspend fun subscribe(topic: String): AppResult<Unit> = withContext(dispatchers.io) {
         runCatching {
+            if (connected && client?.isConnected == true && subscribedTopics.contains(topic)) {
+                return@withContext AppResult.Success(Unit)
+            }
             val c = client ?: return@withContext AppResult.Failure(AppError.Network("MQTT 未初始化"))
             val result = suspendCancellableCoroutine<Boolean> { cont ->
                 c.subscribe(topic, 1, null, object : IMqttActionListener {
@@ -252,9 +333,9 @@ class MqttManager @Inject constructor(
                 }
 
                 topic.startsWith("dk25_nfc/card/") -> {
-                    val card = parseCardNo(payload)
-                    if (card.isNotBlank()) {
-                        _events.tryEmit(InventoryMqttEvent.NfcCard(card))
+                    val nfc = parseNfcCard(payload)
+                    if (nfc.value.isNotBlank()) {
+                        _events.tryEmit(nfc)
                     }
                 }
             }
@@ -279,17 +360,28 @@ class MqttManager @Inject constructor(
         }.getOrDefault(payload)
     }
 
-    private fun parseCardNo(payload: String): String {
-        if (payload.isBlank()) return ""
+    private fun parseNfcCard(payload: String): InventoryMqttEvent.NfcCard {
+        if (payload.isBlank()) return InventoryMqttEvent.NfcCard(readerId = "", value = "")
         return runCatching {
             val obj = JSONObject(payload)
-            obj.optString("cardNumber")
-                .ifBlank { obj.optString("cardNo") }
+            val readerId = obj.optString("ReaderId")
+                .ifBlank { obj.optString("readerId") }
+                .ifBlank { obj.optString("MAC") }
+            val value = obj.optString("Value")
                 .ifBlank { obj.optString("value") }
-        }.getOrDefault(payload)
+                .ifBlank { obj.optString("cardNumber") }
+                .ifBlank { obj.optString("cardNo") }
+            InventoryMqttEvent.NfcCard(readerId = readerId.trim(), value = value.trim())
+        }.getOrDefault(InventoryMqttEvent.NfcCard(readerId = "", value = payload.trim()))
     }
 
     private fun normalizeEpc(raw: String): String {
         return raw.replace(" ", "").replace("-", "").trim().uppercase()
+    }
+
+    private fun updateConnectionStatus(status: MqttConnectionStatus) {
+        if (_connectionStatus.value != status) {
+            _connectionStatus.value = status
+        }
     }
 }

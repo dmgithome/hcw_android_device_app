@@ -2,9 +2,14 @@
 .gradle
 /local.properties
 /.idea
+.project
+.classpath
+.settings/
 .DS_Store
 /build
 /captures
 .externalNativeBuild
 .cxx
 **/build
+/evidence/
+server.log

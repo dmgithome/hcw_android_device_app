@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>耗材屋横屏科技风示意图</title>
+  <style>
+    :root {
+      --bg: #0a1220;
+      --bg2: #0d1a30;
+      --line: #2b5f9a;
+      --line-strong: #4a95e8;
+      --panel: rgba(16, 27, 47, 0.92);
+      --panel-soft: rgba(19, 34, 58, 0.86);
+      --text: #e9f2ff;
+      --muted: #9db5d5;
+      --accent: #5aa8ff;
+      --accent2: #58d2a0;
+      --warn: #d4a24f;
+      --danger: #e06f6f;
+      --radius: 18px;
+      --radius-lg: 24px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; font-family: "PingFang SC", "Noto Sans SC", sans-serif; }
+
+    body {
+      color: var(--text);
+      background:
+        radial-gradient(1200px 700px at 18% -8%, rgba(90,168,255,.25), transparent 55%),
+        radial-gradient(900px 500px at 88% -12%, rgba(88,210,160,.18), transparent 55%),
+        linear-gradient(165deg, var(--bg2), var(--bg));
+      position: relative;
+    }
+
+    body::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(to right, rgba(92,148,214,.09) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(92,148,214,.06) 1px, transparent 1px);
+      background-size: 56px 56px;
+      pointer-events: none;
+    }
+
+    .screen {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      padding: 24px 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .topbar {
+      height: 104px;
+      border: 2px solid var(--line);
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, rgba(22,39,66,.95), rgba(15,27,46,.92));
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      backdrop-filter: blur(2px);
+    }
+
+    .topbar .title { font-size: 42px; font-weight: 800; line-height: 1; letter-spacing: .04em; }
+    .topbar .sub { margin-top: 8px; font-size: 22px; color: var(--muted); font-weight: 600; }
+    .topbar .right { font-size: 30px; font-weight: 700; color: var(--danger); }
+
+    .panel {
+      border: 2px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+    }
+
+    .panel-soft {
+      border: 2px solid #3a6ca6;
+      border-radius: var(--radius);
+      background: var(--panel-soft);
+    }
+
+    .login-wrap {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1.05fr 1.1fr;
+      gap: 20px;
+      align-items: stretch;
+    }
+
+    .brand-box {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 18px;
+      padding: 34px;
+    }
+
+    .brand-box h1 {
+      margin: 0;
+      font-size: 72px;
+      letter-spacing: .08em;
+      color: var(--accent);
+      line-height: 1;
+    }
+
+    .brand-box p {
+      margin: 0;
+      font-size: 30px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .brand-line {
+      width: 62%;
+      height: 6px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--accent), transparent);
+    }
+
+    .form-box {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 16px;
+      padding: 28px;
+    }
+
+    .chips { display: flex; gap: 14px; }
+    .chip {
+      padding: 12px 24px;
+      font-size: 28px;
+      border: 2px solid #4b6f99;
+      border-radius: 999px;
+      color: #a9c2e4;
+      font-weight: 700;
+      background: rgba(27,38,58,.85);
+    }
+    .chip.active { border-color: var(--line-strong); color: #d8e9ff; background: rgba(61,118,190,.35); }
+
+    .field {
+      height: 88px;
+      border: 2px solid #516b8f;
+      border-radius: 14px;
+      padding: 12px 18px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 6px;
+      background: rgba(20,30,48,.8);
+    }
+    .field strong { font-size: 24px; }
+    .field span { font-size: 20px; color: var(--muted); }
+
+    .btn {
+      height: 88px;
+      border-radius: 999px;
+      border: 2px solid transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 30px;
+      font-weight: 800;
+    }
+    .btn.primary { background: #5faaf8; color: #0b1a30; }
+    .msg { text-align: center; font-size: 26px; color: var(--warn); font-weight: 700; }
+
+    .home-grid {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .entry-card {
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 12px;
+      border: 2px solid #3b6ca6;
+      border-radius: var(--radius-lg);
+      background: linear-gradient(180deg, rgba(31,49,76,.92), rgba(21,35,58,.9));
+    }
+
+    .entry-card.green { border-color: #3f9a7c; }
+    .entry-head { display: flex; justify-content: space-between; align-items: center; }
+    .entry-head h2 { margin: 0; font-size: 58px; letter-spacing: .02em; }
+    .entry-head span { font-size: 56px; font-weight: 800; color: var(--accent); }
+    .entry-card.green .entry-head span { color: var(--accent2); }
+    .entry-card p { margin: 0; font-size: 28px; line-height: 1.5; color: var(--muted); font-weight: 600; }
+
+    .page-title {
+      font-size: 54px;
+      font-weight: 800;
+      line-height: 1;
+      margin: 0;
+      letter-spacing: .03em;
+    }
+
+    .action-panel {
+      padding: 16px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .action {
+      min-height: 74px;
+      border-radius: 14px;
+      border: 2px solid #53739a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      font-size: 25px;
+      font-weight: 800;
+      background: rgba(25,37,57,.9);
+    }
+    .action.main { background: rgba(85,159,238,.82); color: #0b182b; border-color: #73b2fa; }
+    .action.confirm { background: rgba(212,162,79,.86); color: #241600; border-color: #e0b260; }
+
+    .location {
+      border-top: 2px solid #355a86;
+      padding-top: 12px;
+    }
+    .location .label { font-size: 24px; color: #98cff7; font-weight: 800; }
+    .loc-row { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
+    .loc { padding: 9px 16px; border-radius: 999px; border: 2px solid #4d678d; font-size: 21px; color: #a9bfdc; font-weight: 700; }
+    .loc.active { border-color: #72b6ff; background: rgba(69,133,206,.4); color: #e8f4ff; }
+
+    .table-panel {
+      flex: 1;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-height: 0;
+    }
+
+    .table {
+      border: 2px solid #3d628f;
+      border-radius: 14px;
+      overflow: hidden;
+      background: rgba(14,24,41,.9);
+    }
+
+    .thead, .trow { display: grid; align-items: center; column-gap: 8px; padding: 0 10px; }
+    .thead { min-height: 56px; font-size: 18px; font-weight: 800; color: #b2d0f0; background: rgba(62,88,124,.82); }
+    .trow { min-height: 52px; font-size: 18px; font-weight: 600; color: #e1ecfb; border-top: 2px solid rgba(71,96,128,.56); }
+    .trow:nth-child(even) { background: rgba(255,255,255,.03); }
+
+    .take-grid { grid-template-columns: 1.45fr 1fr 1fr 0.85fr 0.72fr 1fr 0.7fr 0.72fr 1.2fr 0.62fr; }
+    .return-grid { grid-template-columns: 1.2fr 0.9fr 0.9fr 0.8fr 0.75fr 0.95fr 0.58fr 0.9fr 0.95fr 0.75fr 1.05fr 0.6fr; }
+
+    .remove { color: var(--danger); font-weight: 800; }
+
+    .pager {
+      border: 2px solid #3d628f;
+      border-radius: 12px;
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 20px;
+      color: var(--muted);
+      font-weight: 700;
+      background: rgba(18,30,49,.9);
+    }
+
+    .pager .btns { display: flex; gap: 8px; }
+    .pager .btns span {
+      border: 2px solid #4f74a4;
+      border-radius: 999px;
+      padding: 5px 12px;
+      color: #88c2ff;
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <main class="screen" id="login">
+    <div class="topbar">
+      <div>
+        <div class="title">耗材屋</div>
+        <div class="sub">横屏设备端 · 高可读科技版预览</div>
+      </div>
+      <div class="right" style="font-size:30px; color:#79b9ff">服务器设置</div>
+    </div>
+
+    <div class="login-wrap panel">
+      <section class="brand-box">
+        <h1>耗材屋</h1>
+        <p>智能耗材管理系统</p>
+        <div class="brand-line"></div>
+      </section>
+      <section class="form-box">
+        <div class="chips">
+          <span class="chip active">账号登录</span>
+          <span class="chip">NFC 登录</span>
+        </div>
+        <div class="field"><strong>账号</strong><span>请输入账号</span></div>
+        <div class="field"><strong>密码</strong><span>请输入密码</span></div>
+        <div class="btn primary">登录</div>
+        <div class="msg">MQTT 连接失败</div>
+      </section>
+    </div>
+  </main>
+
+  <main class="screen hidden" id="home">
+    <div class="topbar">
+      <div>
+        <div class="title">耗材屋</div>
+        <div class="sub">管理员 · super</div>
+      </div>
+      <div class="right">退出登录</div>
+    </div>
+    <div class="home-grid">
+      <section class="entry-card">
+        <div class="entry-head"><h2>耗材取用</h2><span>→</span></div>
+        <p>进入取用流程，支持 RFID 与扫码；需先选择目标位置再确认提交</p>
+      </section>
+      <section class="entry-card green">
+        <div class="entry-head"><h2>耗材归还</h2><span>→</span></div>
+        <p>进入归还流程，支持 RFID 与扫码；归还位置由系统自动推断</p>
+      </section>
+    </div>
+  </main>
+
+  <main class="screen hidden" id="take">
+    <div class="topbar">
+      <div>
+        <div class="title">耗材屋</div>
+        <div class="sub">张三 - 护士</div>
+      </div>
+      <div class="right" style="font-size:28px;color:#aac3e6">读码取用</div>
+    </div>
+
+    <section class="panel-soft action-panel">
+      <h2 class="page-title">读码取用</h2>
+      <div class="actions">
+        <div class="action main">开始盘点</div>
+        <div class="action confirm">确认取用</div>
+        <div class="action">确认取用并登出</div>
+      </div>
+      <div class="location">
+        <div class="label">目标位置（选择）</div>
+        <div class="loc-row">
+          <span class="loc active">治疗室A</span><span class="loc">清创室</span><span class="loc">门诊2号间</span><span class="loc">抢救室</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel table-panel">
+      <div class="table">
+        <div class="thead take-grid">
+          <span>耗材名称</span><span>耗材子编码</span><span>规格型号</span><span>批号</span><span>品牌</span><span>生产厂家</span><span>货柜名称</span><span>取用数量</span><span>唯一码</span><span>操作</span>
+        </div>
+        <div class="trow take-grid"><span>碘伏棉签</span><span>HCW-1023</span><span>10支/包</span><span>P202601</span><span>安可</span><span>华诚</span><span>1</span><span>1</span><span>RFID-9A2F</span><span class="remove">移除</span></div>
+        <div class="trow take-grid"><span>一次性手套</span><span>HCW-2018</span><span>M码</span><span>G113</span><span>康护</span><span>洁净</span><span>2</span><span>1</span><span>RFID-7CD1</span><span class="remove">移除</span></div>
+        <div class="trow take-grid"><span>医用纱布</span><span>HCW-3341</span><span>8x8</span><span>S889</span><span>卫宁</span><span>安生</span><span>1</span><span>1</span><span>RFID-5FA8</span><span class="remove">移除</span></div>
+      </div>
+      <div class="pager"><span>共有 57 条记录，2 页，当前是第 1 页</span><div class="btns"><span>首页</span><span>上一页</span><span>下一页</span><span>尾页</span></div></div>
+    </section>
+  </main>
+
+  <main class="screen hidden" id="return">
+    <div class="topbar">
+      <div>
+        <div class="title">耗材屋</div>
+        <div class="sub">张三 - 护士</div>
+      </div>
+      <div class="right" style="font-size:28px;color:#aac3e6">读码归还</div>
+    </div>
+
+    <section class="panel-soft action-panel">
+      <h2 class="page-title">读码归还</h2>
+      <div class="actions">
+        <div class="action main">开始盘点</div>
+        <div class="action confirm">确认归还</div>
+        <div class="action">确认归还并登出</div>
+      </div>
+    </section>
+
+    <section class="panel table-panel">
+      <div class="table">
+        <div class="thead return-grid">
+          <span>耗材名称</span><span>耗材子编码</span><span>规格型号</span><span>批号</span><span>品牌</span><span>生产厂家</span><span>货柜名称</span><span>来源仓库</span><span>当前所在地点</span><span>归还数量</span><span>唯一码</span><span>操作</span>
+        </div>
+        <div class="trow return-grid"><span>碘伏棉签</span><span>HCW-1023</span><span>10支/包</span><span>P202601</span><span>安可</span><span>华诚</span><span>1</span><span>药房A</span><span>治疗室A</span><span>1</span><span>RFID-9A2F</span><span class="remove">移除</span></div>
+        <div class="trow return-grid"><span>一次性手套</span><span>HCW-2018</span><span>M码</span><span>G113</span><span>康护</span><span>洁净</span><span>2</span><span>药房A</span><span>门诊2号间</span><span>1</span><span>RFID-7CD1</span><span class="remove">移除</span></div>
+        <div class="trow return-grid"><span>医用纱布</span><span>HCW-3341</span><span>8x8</span><span>S889</span><span>卫宁</span><span>安生</span><span>1</span><span>药房B</span><span>抢救室</span><span>1</span><span>RFID-5FA8</span><span class="remove">移除</span></div>
+      </div>
+      <div class="pager"><span>共有 66 条记录，2 页，当前是第 1 页</span><div class="btns"><span>首页</span><span>上一页</span><span>下一页</span><span>尾页</span></div></div>
+    </section>
+  </main>
+
+  <script>
+    const p = new URLSearchParams(location.search).get('page') || 'login';
+    for (const el of document.querySelectorAll('main.screen')) {
+      el.classList.add('hidden');
+    }
+    const active = document.getElementById(p) || document.getElementById('login');
+    active.classList.remove('hidden');
+  </script>
+</body>
+</html>

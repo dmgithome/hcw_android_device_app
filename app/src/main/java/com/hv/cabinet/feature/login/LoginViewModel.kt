@@ -7,10 +7,12 @@ import com.hv.cabinet.data.api.CabinetRepository
 import com.hv.cabinet.data.mqtt.InventoryMqttEvent
 import com.hv.cabinet.data.mqtt.MqttManager
 import com.hv.cabinet.data.store.AppPreferences
+import com.hv.cabinet.data.store.DebugConfig
 import com.hv.cabinet.data.store.DeviceConfig
 import com.hv.cabinet.domain.MessageLevel
 import com.hv.cabinet.domain.UiMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,11 +28,19 @@ class LoginViewModel @Inject constructor(
     private val appPreferences: AppPreferences,
     private val mqttManager: MqttManager
 ) : ViewModel() {
+    companion object {
+        private const val NFC_LOGIN_DEBOUNCE_MS = 500L
+    }
+
     private val _state = MutableStateFlow(LoginUiState())
     val state: StateFlow<LoginUiState> = _state.asStateFlow()
 
     private val _effect = MutableSharedFlow<LoginEffect>()
     val effect = _effect.asSharedFlow()
+    private val lastNfcLoginTimestamps = object : LinkedHashMap<String, Long>(16, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Long>): Boolean = size > 32
+    }
+    private var nfcLoginJob: Job? = null
 
     init {
         viewModelScope.launch {
@@ -40,11 +50,21 @@ class LoginViewModel @Inject constructor(
                     mqttBrokerUri = cfg.mqttBrokerUri,
                     mqttUsername = cfg.mqttUsername,
                     mqttPassword = cfg.mqttPassword,
-                    cabinetIpsRaw = cfg.cabinetIps.joinToString(",")
+                    cabinetIpsRaw = cfg.cabinetIps.joinToString(","),
+                    nfcFormatTransform = cfg.nfcFormatTransform,
+                    nfcFormatTransformStrict = cfg.nfcFormatTransformStrict
                 )
             }
         }
-
+        viewModelScope.launch {
+            appPreferences.debugConfigFlow.collectLatest { cfg ->
+                _state.value = _state.value.copy(
+                    debugLogEnabled = cfg.debugLogEnabled,
+                    perfLogEnabled = cfg.perfLogEnabled,
+                    httpBodyLogEnabled = cfg.httpBodyLogEnabled
+                )
+            }
+        }
         viewModelScope.launch {
             val subscribe = mqttManager.subscribeNfcTopic()
             if (subscribe is AppResult.Failure) {
@@ -53,8 +73,8 @@ class LoginViewModel @Inject constructor(
                 )
             }
             mqttManager.events.collectLatest { event ->
-                if (event is InventoryMqttEvent.NfcCard && event.cardNo.isNotBlank()) {
-                    _state.value = _state.value.copy(nfcCardNo = event.cardNo)
+                if (event is InventoryMqttEvent.NfcCard && event.value.isNotBlank()) {
+                    onNfcCardEvent(event)
                 }
             }
         }
@@ -70,10 +90,6 @@ class LoginViewModel @Inject constructor(
 
     fun updateNfcCardNo(value: String) {
         _state.value = _state.value.copy(nfcCardNo = value)
-    }
-
-    fun updateNfcIp(value: String) {
-        _state.value = _state.value.copy(nfcIp = value)
     }
 
     fun updateTab(tab: LoginTab) {
@@ -101,6 +117,26 @@ class LoginViewModel @Inject constructor(
 
     fun updateCabinetIps(value: String) {
         _state.value = _state.value.copy(cabinetIpsRaw = value)
+    }
+
+    fun updateNfcFormatTransform(enabled: Boolean) {
+        _state.value = _state.value.copy(nfcFormatTransform = enabled)
+    }
+
+    fun updateNfcFormatTransformStrict(enabled: Boolean) {
+        _state.value = _state.value.copy(nfcFormatTransformStrict = enabled)
+    }
+
+    fun updateDebugLogEnabled(enabled: Boolean) {
+        _state.value = _state.value.copy(debugLogEnabled = enabled)
+    }
+
+    fun updatePerfLogEnabled(enabled: Boolean) {
+        _state.value = _state.value.copy(perfLogEnabled = enabled)
+    }
+
+    fun updateHttpBodyLogEnabled(enabled: Boolean) {
+        _state.value = _state.value.copy(httpBodyLogEnabled = enabled)
     }
 
     fun toggleConfigExpanded() {
@@ -134,12 +170,21 @@ class LoginViewModel @Inject constructor(
                     mqttBrokerUri = mqttBrokerUri,
                     mqttUsername = current.mqttUsername.trim(),
                     mqttPassword = current.mqttPassword,
-                    cabinetIps = if (ips.isEmpty()) listOf("127.0.0.1") else ips
+                    cabinetIps = if (ips.isEmpty()) listOf("127.0.0.1") else ips,
+                    nfcFormatTransform = current.nfcFormatTransform,
+                    nfcFormatTransformStrict = current.nfcFormatTransformStrict
+                )
+            )
+            appPreferences.saveDebugConfig(
+                DebugConfig(
+                    debugLogEnabled = current.debugLogEnabled,
+                    perfLogEnabled = current.perfLogEnabled,
+                    httpBodyLogEnabled = current.httpBodyLogEnabled
                 )
             )
             _state.value = _state.value.copy(
                 savingConfig = false,
-                message = UiMessage("设备配置已保存", MessageLevel.Success)
+                message = UiMessage("设备与调试配置已保存（网络日志级别重启后生效）", MessageLevel.Success)
             )
         }
     }
@@ -147,7 +192,11 @@ class LoginViewModel @Inject constructor(
     fun login() {
         when (_state.value.tab) {
             LoginTab.Account -> loginByAccount()
-            LoginTab.Nfc -> loginByNfc()
+            LoginTab.Nfc -> {
+                _state.value = _state.value.copy(
+                    message = UiMessage("NFC登录为自动触发，请刷卡", MessageLevel.Info)
+                )
+            }
         }
     }
 
@@ -183,18 +232,18 @@ class LoginViewModel @Inject constructor(
     }
 
     private fun loginByNfc() {
-        val cardNo = _state.value.nfcCardNo.trim()
-        val ip = _state.value.nfcIp.trim()
-        if (ip.isBlank() || cardNo.isBlank()) {
-            _state.value = _state.value.copy(
-                message = UiMessage("请输入NFC读卡IP和卡号", MessageLevel.Warning)
-            )
-            return
-        }
-
         viewModelScope.launch {
             _state.value = _state.value.copy(loading = true, message = UiMessage())
-            when (val result = repository.loginByNfc(ip = ip, cardNumber = cardNo)) {
+            val cardNo = _state.value.nfcCardNo.trim()
+            val ip = _state.value.nfcResolvedIp.trim()
+            if (ip.isBlank() || cardNo.isBlank()) {
+                _state.value = _state.value.copy(
+                    loading = false,
+                    message = UiMessage("未获取到有效刷卡信息，请重试", MessageLevel.Warning)
+                )
+                return@launch
+            }
+            when (val result = repository.loginByNfc(ip = ip, cardNumber = cardNo, mac = _state.value.nfcReaderId.trim())) {
                 is AppResult.Success -> {
                     _state.value = _state.value.copy(
                         loading = false,
@@ -212,6 +261,85 @@ class LoginViewModel @Inject constructor(
             }
         }
     }
+
+    private fun onNfcCardEvent(event: InventoryMqttEvent.NfcCard) {
+        val rawValue = event.value.trim()
+        if (rawValue.isBlank()) return
+        val readerId = event.readerId.trim()
+        val now = System.currentTimeMillis()
+        if (readerId.isNotBlank()) {
+            val lastTs = lastNfcLoginTimestamps[readerId]
+            if (lastTs != null && now - lastTs < NFC_LOGIN_DEBOUNCE_MS) {
+                return
+            }
+            lastNfcLoginTimestamps[readerId] = now
+        }
+
+        val current = _state.value
+        val transformed = transformNfcIfNeeded(rawValue, current.nfcFormatTransform)
+        val resolvedCard = when {
+            !current.nfcFormatTransform -> rawValue
+            transformed != null -> transformed
+            current.nfcFormatTransformStrict -> {
+                _state.value = current.copy(
+                    nfcReaderId = readerId,
+                    nfcRawValue = rawValue,
+                    message = UiMessage("NFC格式转换失败，请检查设备上报的Value", MessageLevel.Error)
+                )
+                return
+            }
+            else -> rawValue
+        }
+
+        _state.value = _state.value.copy(
+            nfcReaderId = readerId,
+            nfcRawValue = rawValue,
+            nfcCardNo = resolvedCard
+        )
+
+        if (readerId.isBlank()) {
+            _state.value = _state.value.copy(
+                message = UiMessage("未获取到读卡器编号 ReaderId", MessageLevel.Error)
+            )
+            return
+        }
+        if (nfcLoginJob?.isActive == true || _state.value.loading) {
+            return
+        }
+
+        nfcLoginJob = viewModelScope.launch {
+            _state.value = _state.value.copy(
+                loading = true,
+                message = UiMessage("已收到刷卡，正在匹配设备并登录...", MessageLevel.Info),
+                nfcResolvedIp = ""
+            )
+
+            when (val ipResult = repository.findCabinetIpByMac(readerId)) {
+                is AppResult.Success -> {
+                    _state.value = _state.value.copy(nfcResolvedIp = ipResult.value)
+                    loginByNfc()
+                }
+
+                is AppResult.Failure -> {
+                    _state.value = _state.value.copy(
+                        loading = false,
+                        message = UiMessage(ipResult.error.message, MessageLevel.Error)
+                    )
+                }
+            }
+        }
+    }
+
+    private fun transformNfcIfNeeded(rawValue: String, enabled: Boolean): String? {
+        if (!enabled) return rawValue
+        val src = rawValue.trim()
+        if (src.length < 14) return null
+        val segment = src.substring(6, 14)
+        if (!segment.matches(Regex("^[0-9a-fA-F]{8}$"))) return null
+        return runCatching {
+            segment.toLong(16).toString()
+        }.getOrNull()
+    }
 }
 
 data class LoginUiState(
@@ -219,12 +347,19 @@ data class LoginUiState(
     val userName: String = "",
     val password: String = "",
     val nfcCardNo: String = "",
-    val nfcIp: String = "",
+    val nfcReaderId: String = "",
+    val nfcRawValue: String = "",
+    val nfcResolvedIp: String = "",
     val apiBaseUrl: String = "",
     val mqttBrokerUri: String = "",
     val mqttUsername: String = "",
     val mqttPassword: String = "",
     val cabinetIpsRaw: String = "127.0.0.1",
+    val nfcFormatTransform: Boolean = true,
+    val nfcFormatTransformStrict: Boolean = true,
+    val debugLogEnabled: Boolean = false,
+    val perfLogEnabled: Boolean = false,
+    val httpBodyLogEnabled: Boolean = false,
     val configExpanded: Boolean = false,
     val loading: Boolean = false,
     val savingConfig: Boolean = false,

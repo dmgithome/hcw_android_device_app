@@ -4,11 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hv.cabinet.core.PerfMonitor
 import com.hv.cabinet.data.api.CabinetRepository
+import com.hv.cabinet.data.mqtt.MqttManager
 import com.hv.cabinet.data.store.AppPreferences
-import com.hv.cabinet.domain.MessageLevel
 import com.hv.cabinet.domain.UiMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,10 +18,12 @@ import javax.inject.Inject
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val repository: CabinetRepository,
-    appPreferences: AppPreferences
+    appPreferences: AppPreferences,
+    private val mqttManager: MqttManager
 ) : ViewModel() {
     private val _state = MutableStateFlow(HomeUiState())
     val state: StateFlow<HomeUiState> = _state.asStateFlow()
+    private var takeLocationsPrefetched = false
 
     init {
         viewModelScope.launch {
@@ -30,6 +31,21 @@ class HomeViewModel @Inject constructor(
                 _state.value = _state.value.copy(
                     userName = session.userName,
                     userRole = session.userRole
+                )
+                if (!takeLocationsPrefetched && session.token.isNotBlank()) {
+                    takeLocationsPrefetched = true
+                    viewModelScope.launch {
+                        repository.prefetchTakeTargetLocations()
+                    }
+                }
+            }
+        }
+
+        viewModelScope.launch {
+            mqttManager.connectionStatus.collectLatest { status ->
+                _state.value = _state.value.copy(
+                    mqttConnected = status.connected,
+                    mqttStatusText = status.badgeText
                 )
             }
         }
@@ -65,22 +81,18 @@ class HomeViewModel @Inject constructor(
 
     private fun launchNavigation(key: String, navigate: () -> Unit) {
         if (_state.value.routeLocked) return
-        viewModelScope.launch {
-            _state.value = _state.value.copy(
-                routeLocked = true,
-                message = UiMessage("正在进入${if (key == "take") "耗材取用" else "耗材归还"}...", MessageLevel.Info)
-            )
-            PerfMonitor.mark("home_card_${key}_navigate_start")
-            navigate()
-            delay(450)
-            _state.value = _state.value.copy(routeLocked = false, message = UiMessage())
-        }
+        _state.value = _state.value.copy(routeLocked = true)
+        PerfMonitor.mark("home_card_${key}_navigate_start")
+        navigate()
+        // routeLocked 由目标页面的 consumeRouteLock() 解锁，无需人为延迟
     }
 }
 
 data class HomeUiState(
     val userName: String = "",
     val userRole: String = "",
+    val mqttConnected: Boolean? = null,
+    val mqttStatusText: String = "MQTT 探测中",
     val routeLocked: Boolean = false,
     val showLogoutDialog: Boolean = false,
     val message: UiMessage = UiMessage()

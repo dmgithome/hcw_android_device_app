@@ -1,141 +1,137 @@
-# PRD：原生设备端 V2 一次性交付（UI + 功能完整）
+# 耗材屋安卓设备端重构 PRD（质量门禁版）
 
-## 一、摘要
+更新时间：2026-02-24  
+适用范围：本仓库（Android 设备端，Kotlin + Compose）
 
-本 PRD 用于将 `/Users/dm/code/hcw_android_device_app` 升级到可上线交付标准，覆盖 UI、核心业务流程、稳定性、性能与安装发布。  
-执行口径：内部完成开发与门禁验证后再提测，过程内按任务清单逐项勾选并记录证据。
+## 1. 背景与目标
 
-## 二、对外接口与类型变化
+本项目用于替换原 WebView 设备端交互，目标是在**不改变业务逻辑与对外口径**的前提下，把登录/取用/归还等核心流程做成可长期维护、可验收、可回滚的原生安卓应用。
 
-1. 后端 HTTP API：无变化。  
-2. MQTT Topic：无变化。  
-3. 业务规则口径：无变化。  
-4. 新增内容仅为原生内部类型与 UI 状态模型，不影响管理端与后端接口。
+成功标准（一句话）：**行为看起来一致、规则实际不变、证据可以对账。**
 
-## 三、任务清单（完成即勾选）
+## 2. 范围 / 不做什么
 
-- [x] T01 新建 PRD 文档骨架与章节目录（目标文件：`/Users/dm/code/hcw_android_device_app/docs/PRD.md`）
-- [x] T02 统一设计系统（色板/字体/间距/按钮/卡片/输入框）
-- [x] T03 新增公共组件层（页面骨架、状态条、空态、错误态、操作区）
-- [x] T04 登录页重构（账号/NFC 双模式、配置折叠区、输入校验、错误映射、加载态）
-- [x] T05 首页重构（会话信息、双入口大卡片、按下反馈、防重复点击、退出确认）
-- [x] T06 抽象取用/归还统一状态机（Idle/Starting/WaitingAck/Inventorying/Submitting/Done/Error）
-- [x] T07 取用页重构（状态区、扫码区、异常区、清单区、提交区）
-- [x] T08 归还页重构（同构布局、归还语义校验、异常提示）
-- [x] T09 盘点启动超时与重试机制（ACK 超时、失败恢复、提示可操作）
-- [x] T10 导航稳定性修复（登录后栈清理、登出回登录、防白屏回弹）
-- [x] T11 网络错误产品化（401/403/404/超时/断网映射可读文案）
-- [x] T12 MQTT 可靠性增强（断线重连恢复订阅、退订保障、解析容错）
-- [x] T13 日志与性能埋点（点击响应、页面可交互、关键链路耗时）
-- [x] T14 构建发布脚本与 README 同步（debug/release/install/perf 命令可直接执行）
-- [ ] T15 全量功能回归（登录、取用、归还、确认并登出、异常恢复）
-- [ ] T16 性能回归与提测包产出（debug/release + adb 指标对比）
+### 2.1 本次覆盖范围
 
-## 四、已完成项证据
+- 登录（账号登录 / NFC 自动登录）
+- 首页双入口
+- 耗材取用
+- 耗材归还
+- 确认并登出
 
-### T02 设计系统
+### 2.2 明确不做（默认禁止）
 
-- `/Users/dm/code/hcw_android_device_app/app/src/main/java/com/hv/cabinet/ui/theme/Color.kt`
-- `/Users/dm/code/hcw_android_device_app/app/src/main/java/com/hv/cabinet/ui/theme/Type.kt`
-- `/Users/dm/code/hcw_android_device_app/app/src/main/java/com/hv/cabinet/ui/theme/Theme.kt`
+- 不新增业务功能（只做重构与体验对齐）
+- 不改变后端业务规则（含 409 并发冲突语义）
+- 不改名/不新增/不删减对外 HTTP API 与 MQTT topic
 
-### T03 公共组件
+> 如果确实必须更改对外口径：必须在本 PRD 的“对外口径变更（已批准）”章节列出，并先获得明确批准。
 
-- `/Users/dm/code/hcw_android_device_app/app/src/main/java/com/hv/cabinet/ui/components/AppScaffold.kt`
-- `/Users/dm/code/hcw_android_device_app/app/src/main/java/com/hv/cabinet/ui/components/StatusBanner.kt`
-- `/Users/dm/code/hcw_android_device_app/app/src/main/java/com/hv/cabinet/ui/components/ActionButtons.kt`
-- `/Users/dm/code/hcw_android_device_app/app/src/main/java/com/hv/cabinet/ui/components/ConsumableListItem.kt`
-- `/Users/dm/code/hcw_android_device_app/app/src/main/java/com/hv/cabinet/ui/components/EmptyState.kt`
-- `/Users/dm/code/hcw_android_device_app/app/src/main/java/com/hv/cabinet/ui/components/FeatureCard.kt`
+## 3. 红线：业务逻辑不变（不可变清单）
 
-### T04-T05 页面重构
+### 3.1 对外 HTTP API（不可变）
 
-- `/Users/dm/code/hcw_android_device_app/app/src/main/java/com/hv/cabinet/feature/login/LoginScreen.kt`
-- `/Users/dm/code/hcw_android_device_app/app/src/main/java/com/hv/cabinet/feature/login/LoginViewModel.kt`
-- `/Users/dm/code/hcw_android_device_app/app/src/main/java/com/hv/cabinet/feature/home/HomeScreen.kt`
-- `/Users/dm/code/hcw_android_device_app/app/src/main/java/com/hv/cabinet/feature/home/HomeViewModel.kt`
+以下接口路径与语义必须保持不变（来源：`app/src/main/java/com/hv/cabinet/data/api/CabinetApi.kt`）：
 
-### T06-T09 业务流与状态机
+- `POST /api/v1/amis/login`
+- `POST /api/nfc/loginByNFC`
+- `GET /api/v1/amis/user_info`
+- `GET /api/cabinet/getAllCabinetList`
+- `GET /api/inventory/callInventory?IP=...`
+- `GET /api/locations/list`
+- `GET /api/locations/default`
+- `POST /api/stock/getConsumeOrReturnConsumablesByBarcode`
+- `POST /api/stock/createTakeAndReturnLog`
 
-- `/Users/dm/code/hcw_android_device_app/app/src/main/java/com/hv/cabinet/domain/DomainModels.kt`
-- `/Users/dm/code/hcw_android_device_app/app/src/main/java/com/hv/cabinet/feature/take/TakeViewModel.kt`
-- `/Users/dm/code/hcw_android_device_app/app/src/main/java/com/hv/cabinet/feature/take/TakeScreen.kt`
-- `/Users/dm/code/hcw_android_device_app/app/src/main/java/com/hv/cabinet/feature/returning/ReturnViewModel.kt`
-- `/Users/dm/code/hcw_android_device_app/app/src/main/java/com/hv/cabinet/feature/returning/ReturnScreen.kt`
+### 3.2 MQTT Topic（不可变）
 
-### T10-T13 稳定性与性能
+以下 topic 必须保持不变（来源：`app/src/main/java/com/hv/cabinet/data/mqtt/MqttManager.kt`）：
 
-- `/Users/dm/code/hcw_android_device_app/app/src/main/java/com/hv/cabinet/navigation/CabinetApp.kt`
-- `/Users/dm/code/hcw_android_device_app/app/src/main/java/com/hv/cabinet/data/api/CabinetRepository.kt`
-- `/Users/dm/code/hcw_android_device_app/app/src/main/java/com/hv/cabinet/data/api/BaseUrlProvider.kt`
-- `/Users/dm/code/hcw_android_device_app/app/src/main/java/com/hv/cabinet/data/mqtt/MqttManager.kt`
-- `/Users/dm/code/hcw_android_device_app/app/src/main/java/com/hv/cabinet/core/PerfMonitor.kt`
-- `/Users/dm/code/hcw_android_device_app/app/src/main/java/com/hv/cabinet/core/AppError.kt`
+- `table/rfid/fast_tag/#`
+- `table/rfid/inventory_status/#`
+- `dk25_nfc/card/#`
 
-### T14 构建发布链路
+### 3.3 关键业务规则（不可变）
 
-- `/Users/dm/code/hcw_android_device_app/scripts/build_debug.sh`
-- `/Users/dm/code/hcw_android_device_app/scripts/build_release.sh`
-- `/Users/dm/code/hcw_android_device_app/scripts/install_debug.sh`
-- `/Users/dm/code/hcw_android_device_app/scripts/perf_framestats.sh`
-- `/Users/dm/code/hcw_android_device_app/README.md`
+以下规则属于“业务口径”，不得被重构改变（如要改，必须走审批）：
 
-## 五、验证记录
+- NFC 登录：由 MQTT 刷卡消息自动触发，不是手工填写卡号/IP 再点击登录。
+- 取用目标位置：必须从地点列表中“选择”，不允许用户手填自由文本。
+- 取用提交：必须携带 `to_location_id`，未选择目标位置必须阻止提交。
+- 归还提交：每条需携带 `expected_current_location_id` 做并发校验。
+- 409 并发冲突：前端必须给出“可理解且可定位”的提示（至少让用户知道哪些条目冲突）。
 
-### 编译与测试
+> 业务口径的对照基准：若本机存在 `/Users/dm/code/hcw_web_app` 与 `/Users/dm/code/hcw_yao`，默认以它们为“最终口径来源”。
 
-```bash
-cd /Users/dm/code/hcw_android_device_app
-./gradlew assembleDebug -x lint
-./gradlew testDebugUnitTest
-./gradlew assembleRelease -x lint
-```
+## 4. UI/UX 基准与“一致”的定义（行为一致）
 
-结果：均通过。
+### 4.1 行为一致（本项目默认标准）
 
-### 安装与启动
+“一致”指的是用户完成同一任务时：
 
-```bash
-adb install -r /Users/dm/code/hcw_android_device_app/app/build/outputs/apk/debug/app-debug.apk
-adb shell am force-stop com.hv.cabinet
-adb shell monkey -p com.hv.cabinet -c android.intent.category.LAUNCHER 1
-```
+- 操作步骤一致（先做什么、后做什么）
+- 反馈一致（成功/失败/等待/冲突时提示清楚）
+- 信息层级一致（关键字段/数量/冲突高亮能让人一眼看懂）
+- 可操作性一致（不会卡死；失败后能重试；能继续下一次操作）
 
-结果：安装成功并可拉起应用。
+允许差异（但必须记录在差异清单）：
 
-### 自动化冒烟（已执行）
+- 布局适配（横竖屏、不同分辨率）
+- 符合 Android 习惯的导航与返回（不改变核心流程）
+- 视觉细节的小差异（不影响理解与操作）
 
-```bash
-# 首页 -> 取用页 -> 返回 -> 归还页 -> 返回
-adb shell input tap 960 322
-adb shell input keyevent 4
-adb shell input tap 960 789
-adb shell input keyevent 4
+### 4.2 UI/UX 差异清单（默认应为空）
 
-# 退出登录确认弹窗出现
-adb shell input tap 1875 56
-adb shell input keyevent 4
-```
+| 屏幕/流程 | 差异描述 | 原因 | 对用户影响 | 是否接受 | 证据（截图/录屏路径） |
+|---|---|---|---|---|---|
+| （默认） | 无 | - | - | 通过 | - |
 
-结果：页面跳转正常，主控台/取用/归还关键文案均可识别，退出确认弹窗可正常出现与关闭。
+## 5. 状态流程（状态机）总览
 
-### 性能采样（当前轮）
+### 5.1 取用/归还通用状态（来自 `InventoryFlowState`）
 
-```bash
-adb shell dumpsys gfxinfo com.hv.cabinet reset
-adb shell monkey -p com.hv.cabinet 30
-adb shell dumpsys gfxinfo com.hv.cabinet framestats
-```
+| 状态 | 含义（白话） | 用户应看到什么 | 允许操作 |
+|---|---|---|---|
+| `Idle` | 空闲，可开始 | 可点击“开始盘点”，可输入条码 | 开始/扫码/移除 |
+| `Starting` | 正在启动盘点 | “正在启动…”提示 | 禁止重复点开始 |
+| `WaitingAck` | 已发命令，等设备回应 | “等待设备响应”提示 | 允许重试（按规则） |
+| `Inventorying` | 盘点中 | 状态显示“盘点中” | 可持续放置耗材 |
+| `Submitting` | 正在提交 | 提交按钮不可重复点 | 禁止重复提交 |
+| `Completed` | 提交完成 | 成功提示 | 自动回到可继续操作 |
+| `Error` | 出错/冲突/超时 | 清晰错误提示 | 能重试/修正 |
 
-结果：已采样成功。  
-说明：该采样为随机事件数据，`T15/T16` 需要按固定业务脚本（登录/取用/归还连续 30 次）做最终对比验收。
+### 5.2 必须覆盖的异常与恢复（所有流程共通）
 
-## 六、待完成项与阻塞
+- 设备无响应：等待超时后必须提示，并能一键重试
+- 断网：必须提示“网络问题”，不允许无穷转圈
+- MQTT 断开/重连：断开要提示；重连后能继续（至少不会卡死）
+- 页面离开再返回：状态应可恢复到“可操作”或给出可理解提示
 
-1. T15：账号登录、NFC 登录、提交流程仍需现场账号与外设链路做全量回归。  
-2. T16：需按固定业务脚本（非 monkey）采集改造前后 `framestats` 对比，形成提测结论。
+## 6. 验收入口（必读）
 
-## 七、风险与回滚
+- 稳定验收标准：`docs/验收标准_v2.md`
+- 每轮进度与证据索引：`docs/验收记录.md`
+- 证据文件目录（本地）：`evidence/`（已加入 `.gitignore`）
 
-1. 风险：一次性改动面大，仍可能存在现场设备兼容差异。  
-2. 回滚：保留上一版可运行 APK，异常时执行 `adb install -r` 回装。  
+## 7. 对外口径变更（必须先批准）
+
+默认：**无**（不允许对外口径变化）。
+
+如确需变更，必须在此列出并标注“已批准”，否则视为不通过：
+
+- （留空）
+
+## 8. 风险与回滚（快速撤回）
+
+风险点（重构常见）：
+
+- 看起来能用，但业务规则悄悄偏了
+- 异常场景（超时/断网/冲突）没处理完整，现场容易卡死
+- UI 表现差不多，但关键反馈不一致，用户判断困难
+
+回滚方式（优先级从快到慢）：
+
+1. 直接回退到上一稳定版本的 APK（现场快速止损）
+2. Git 回退到上一稳定提交（开发侧恢复）
+3. 若引入了不可控变更：先恢复对外口径，再恢复 UI/UX
+

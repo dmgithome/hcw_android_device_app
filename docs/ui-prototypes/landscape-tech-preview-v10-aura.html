@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>耗材屋 高级感版 v10 - Aura Vision</title>
+  <style>
+    :root {
+      --primary: #3E8BFF;
+      --primary-glow: rgba(62, 139, 255, 0.4);
+      --accent: #5ED8AB;
+      --bg-dark: #080C14;
+      --panel-bg: rgba(22, 28, 42, 0.6);
+      --glass-border: rgba(255, 255, 255, 0.1);
+      --text-bright: #F0F4FF;
+      --text-dim: #A0B0C8;
+      --radius-lg: 20px;
+      --radius-sm: 10px;
+    }
+
+    * { box-sizing: border-box; -webkit-font-smoothing: antialiased; cursor: default; }
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: var(--bg-dark); color: var(--text-bright); }
+
+    body {
+      font-family: "PingFang SC", "Hiragino Sans GB", sans-serif;
+      /* 背景使用多层径向渐变，营造深邃的“灵动”感 */
+      background:
+        radial-gradient(circle at 10% 10%, rgba(62, 139, 255, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(94, 216, 171, 0.05) 0%, transparent 40%),
+        var(--bg-dark);
+    }
+
+    /* 顶部导航 */
+    .header {
+      height: 80px;
+      padding: 0 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+      z-index: 10;
+    }
+
+    .brand { display: flex; align-items: center; gap: 15px; }
+    .brand-icon {
+      width: 40px; height: 40px;
+      background: linear-gradient(135deg, var(--primary), #76B3FF);
+      border-radius: 12px;
+      box-shadow: 0 4px 15px var(--primary-glow);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 900; font-size: 22px;
+    }
+    .brand-text { font-size: 26px; font-weight: 600; letter-spacing: 2px; }
+
+    .system-status { display: flex; gap: 30px; font-size: 14px; color: var(--text-dim); }
+    .status-pill {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 16px; background: rgba(255,255,255,0.03);
+      border: 1px solid var(--glass-border); border-radius: 99px;
+    }
+    .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+
+    /* 场景切换容器 */
+    .scene { display: none; padding: 20px 40px 40px; flex: 1; height: calc(100% - 80px); }
+    .scene.active { display: flex; flex-direction: column; gap: 20px; }
+
+    /* --- 登录场景 --- */
+    .login-wrap { align-items: center; justify-content: center; }
+    .login-glass {
+      width: 500px;
+      padding: 60px;
+      background: var(--panel-bg);
+      backdrop-filter: blur(30px);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-lg);
+      box-shadow: 0 30px 60px rgba(0,0,0,0.5);
+      text-align: center;
+    }
+    .login-glass h1 { font-size: 40px; margin-bottom: 10px; font-weight: 700; }
+    .login-glass p { color: var(--text-dim); margin-bottom: 40px; font-size: 18px; }
+
+    .input-field {
+      position: relative; margin-bottom: 25px; text-align: left;
+    }
+    .input-field label { font-size: 12px; color: var(--primary); font-weight: 600; margin-left: 5px; display: block; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+    .input-field .control {
+      width: 100%; height: 60px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-sm);
+      padding: 0 20px; color: white; font-size: 18px;
+      transition: all 0.3s;
+    }
+    .input-field .control:focus { border-color: var(--primary); background: rgba(62,139,255,0.05); outline: none; }
+
+    .btn-login {
+      width: 100%; height: 64px;
+      background: linear-gradient(90deg, var(--primary), #76B3FF);
+      border: none; border-radius: var(--radius-sm);
+      color: white; font-size: 20px; font-weight: 700;
+      box-shadow: 0 10px 25px var(--primary-glow);
+      margin-top: 20px; transition: 0.3s;
+    }
+    .btn-login:active { transform: scale(0.98); opacity: 0.9; }
+
+    /* --- 主页场景 --- */
+    .home-wrap { justify-content: center; align-items: center; }
+    .feature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 1100px; }
+
+    .feature-card {
+      background: var(--panel-bg);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-lg);
+      padding: 50px 40px;
+      position: relative; overflow: hidden;
+      transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+    }
+    .feature-card::before {
+      content: ""; position: absolute; inset: 0;
+      background: linear-gradient(135deg, var(--primary-glow), transparent);
+      opacity: 0; transition: 0.4s;
+    }
+    .feature-card:hover { transform: translateY(-10px); border-color: rgba(62, 139, 255, 0.5); }
+    .feature-card:hover::before { opacity: 1; }
+
+    .card-icon {
+      font-size: 64px; margin-bottom: 25px; position: relative;
+    }
+    .feature-card h2 { font-size: 42px; margin: 0 0 15px 0; font-weight: 700; position: relative; }
+    .feature-card p { font-size: 18px; color: var(--text-dim); line-height: 1.6; margin: 0; position: relative; }
+
+    /* --- 详情场景 --- */
+    .main-layout { display: grid; grid-template-columns: 320px 1fr; gap: 24px; flex: 1; min-height: 0; }
+
+    .sidebar { display: flex; flex-direction: column; gap: 20px; }
+    .glass-panel {
+      background: var(--panel-bg);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+    }
+
+    .label-dim { font-size: 13px; color: var(--text-dim); margin-bottom: 8px; font-weight: 500; }
+    .val-strong { font-size: 22px; font-weight: 700; color: white; margin-bottom: 24px; display: block; }
+
+    .data-card {
+      background: var(--panel-bg);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-lg);
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+
+    .table-header {
+      background: rgba(255,255,255,0.05); padding: 20px 30px;
+      display: grid; grid-template-columns: 2.5fr 1.5fr 1.2fr 1fr 0.8fr 1.2fr;
+      font-weight: 700; color: var(--text-dim); font-size: 14px; border-bottom: 1px solid var(--glass-border);
+    }
+    .table-row {
+      padding: 22px 30px;
+      display: grid; grid-template-columns: 2.5fr 1.5fr 1.2fr 1fr 0.8fr 1.2fr;
+      font-size: 16px; border-bottom: 1px solid rgba(255,255,255,0.03);
+      align-items: center; transition: 0.2s;
+    }
+    .table-row:hover { background: rgba(255,255,255,0.02); }
+
+    .tag-blue { background: rgba(62,139,255,0.15); color: var(--primary); padding: 4px 10px; border-radius: 6px; font-size: 13px; font-weight: 600; font-family: monospace; }
+
+    /* 操作栏 */
+    .footer { height: 100px; display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 20px; }
+    .btn-action {
+      height: 70px; border-radius: var(--radius-sm); border: 1px solid var(--glass-border);
+      background: rgba(255,255,255,0.05); color: white; font-size: 20px; font-weight: 600;
+      display: flex; align-items: center; justify-content: center; gap: 10px; transition: 0.3s;
+    }
+    .btn-action:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); }
+    .btn-action.primary {
+      background: var(--primary); border: none; box-shadow: 0 10px 20px var(--primary-glow);
+    }
+    .btn-action.outline { border-color: var(--primary); color: var(--primary); }
+
+    /* 位置选择 */
+    .loc-grid { display: flex; flex-direction: column; gap: 10px; }
+    .loc-item {
+      padding: 16px; border-radius: var(--radius-sm); border: 1px solid var(--glass-border);
+      background: rgba(255,255,255,0.02); font-weight: 500; transition: 0.3s;
+    }
+    .loc-item.active { background: var(--primary); border: none; color: white; font-weight: 700; box-shadow: 0 5px 15px var(--primary-glow); }
+
+    .hidden { display: none !important; }
+
+    /* 装饰元素 */
+    .aura-glow {
+      position: fixed; width: 400px; height: 400px;
+      border-radius: 50%; filter: blur(100px);
+      z-index: 0; pointer-events: none; opacity: 0.4;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="aura-glow" style="top: -100px; left: -100px; background: var(--primary);"></div>
+  <div class="aura-glow" style="bottom: -100px; right: -100px; background: var(--accent);"></div>
+
+  <header class="header">
+    <div class="brand">
+      <div class="brand-icon">H</div>
+      <div class="brand-text">HCW CABINET <span style="font-weight: 200; opacity: 0.5;">AURA</span></div>
+    </div>
+    <div class="system-status">
+      <div class="status-pill"><div class="status-dot"></div>系统在线</div>
+      <div class="status-pill">RFID: READY</div>
+      <div id="clock" style="font-weight: 600; letter-spacing: 1px; color: var(--text-bright);">14:30:05</div>
+    </div>
+  </header>
+
+  <!-- 登录场景 -->
+  <main id="scene-login" class="scene active login-wrap">
+    <div class="login-glass">
+      <h1>身份授权</h1>
+      <p>请完成安全验证以开始工作</p>
+
+      <div class="input-field">
+        <label>用户账号 / 访问令牌</label>
+        <input type="text" class="control" value="ADMIN_SUPER_01">
+      </div>
+      <div class="input-field">
+        <label>安全口令</label>
+        <input type="password" class="control" value="••••••••">
+      </div>
+
+      <button class="btn-login" onclick="showScene('home')">开启系统</button>
+      <div style="margin-top: 25px; font-size: 14px; color: var(--text-dim);">支持 NFC 快速感应登录</div>
+    </div>
+  </main>
+
+  <!-- 主页场景 -->
+  <main id="scene-home" class="scene home-wrap">
+    <div class="feature-grid">
+      <div class="feature-card" onclick="showScene('detail')">
+        <div class="card-icon">📤</div>
+        <h2>耗材取用</h2>
+        <p>智能化库存监测与扫码取用流程，确保每一件耗材去向可追溯。</p>
+      </div>
+      <div class="feature-card" onclick="showScene('detail')" style="border-color: rgba(94, 216, 171, 0.2);">
+        <div class="card-icon">📥</div>
+        <h2 style="color: var(--accent);">耗材归还</h2>
+        <p>极简归还逻辑，自动关联原始订单，实现库存闭环管理。</p>
+      </div>
+    </div>
+  </main>
+
+  <!-- 详情场景 -->
+  <main id="scene-detail" class="scene">
+    <div class="main-layout">
+      <aside class="sidebar">
+        <div class="glass-panel">
+          <div class="label-dim">当前操作员</div>
+          <span class="val-strong">张三 (高级护理师)</span>
+
+          <div class="label-dim">权限等级</div>
+          <span class="val-strong" style="font-size: 14px; color: var(--accent);">全职能管理员权限</span>
+
+          <div style="height: 1px; background: var(--glass-border); margin-bottom: 24px;"></div>
+
+          <div class="label-dim">设备环境监测</div>
+          <div style="font-size: 14px; line-height: 2;">
+            温度: 24°C (正常)<br>
+            存储状态: <span style="color: var(--accent);">稳定</span>
+          </div>
+        </div>
+
+        <div class="glass-panel" style="flex:1">
+          <div class="label-dim" style="margin-bottom: 15px;">目标科室/位置</div>
+          <div class="loc-grid">
+            <div class="loc-item active">手术部 - 第一诊疗区</div>
+            <div class="loc-item">住院部 - 护理中心</div>
+            <div class="loc-item">急诊重症监护室 (ICU)</div>
+          </div>
+        </div>
+      </aside>
+
+      <section class="data-card">
+        <div class="table-header">
+          <span>耗材名称</span><span>规格型号</span><span>生产批号</span><span>货柜位</span><span>数量</span><span>RFID标识</span>
+        </div>
+        <div style="flex:1; overflow-y: auto;">
+          <div class="table-row">
+            <span style="font-weight:700; font-size: 18px;">碘伏棉签</span>
+            <span style="color: var(--text-dim);">10支/包</span>
+            <span style="font-family: monospace;">P202601</span>
+            <span style="font-weight: 600;">柜层 A-01</span>
+            <span style="color: var(--primary); font-size: 20px; font-weight: 800;">1</span>
+            <span class="tag-blue">9A:2F:B0</span>
+          </div>
+          <div class="table-row">
+            <span style="font-weight:700; font-size: 18px;">无菌手套 (M)</span>
+            <span style="color: var(--text-dim);">100只/盒</span>
+            <span style="font-family: monospace;">G113-X7</span>
+            <span style="font-weight: 600;">柜层 B-03</span>
+            <span style="color: var(--primary); font-size: 20px; font-weight: 800;">1</span>
+            <span class="tag-blue">7C:D1:E4</span>
+          </div>
+          <div class="table-row">
+            <span style="font-weight:700; font-size: 18px;">医用透气胶带</span>
+            <span style="color: var(--text-dim);">2.5cm x 5m</span>
+            <span style="font-family: monospace;">S889-W2</span>
+            <span style="font-weight: 600;">柜层 A-05</span>
+            <span style="color: var(--primary); font-size: 20px; font-weight: 800;">2</span>
+            <span class="tag-blue">5F:A8:CC</span>
+          </div>
+        </div>
+        <div style="padding: 24px 30px; background: rgba(0,0,0,0.2); border-top: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center;">
+          <div style="font-size: 15px; color: var(--text-dim);">共计扫描耗材: <span style="color: white; font-weight: 700;">04 件</span></div>
+          <div style="display: flex; gap: 10px;">
+            <div style="padding: 8px 15px; background: rgba(255,255,255,0.05); border-radius: 6px; font-size: 13px;">第 1 / 1 页</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <footer class="footer">
+      <div class="btn-action outline">🔄 重新扫描</div>
+      <div class="btn-action primary">确认取用并提交</div>
+      <div class="btn-action">✅ 提交并登出</div>
+      <div class="btn-action" style="color: #FF6B6B; border-color: rgba(255, 107, 107, 0.3);" onclick="showScene('home')">取消返回</div>
+    </footer>
+  </main>
+
+  <script>
+    function showScene(id) {
+      document.querySelectorAll('.scene').forEach(s => s.classList.remove('active'));
+      document.getElementById('scene-' + id).classList.add('active');
+    }
+    // 时钟
+    setInterval(() => {
+      const now = new Date();
+      document.getElementById('clock').innerText = now.toTimeString().split(' ')[0];
+    }, 1000);
+  </script>
+</body>
+</html>

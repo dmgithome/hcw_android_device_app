@@ -1,5 +1,6 @@
 package com.hv.cabinet.domain
 
+import androidx.compose.runtime.Immutable
 import com.hv.cabinet.data.api.ConsumableDto
 
 enum class InventoryMode {
@@ -24,9 +25,11 @@ enum class MessageLevel {
     Error
 }
 
+@Immutable
 data class UiMessage(
     val text: String = "",
-    val level: MessageLevel = MessageLevel.Info
+    val level: MessageLevel = MessageLevel.Info,
+    val nonce: Long = System.nanoTime()
 ) {
     val visible: Boolean
         get() = text.isNotBlank()
@@ -41,12 +44,37 @@ enum class ScanWarningType {
     Unknown
 }
 
+@Immutable
 data class ScanWarning(
     val type: ScanWarningType,
     val count: Int,
     val message: String
 )
 
+@Immutable
+data class InventoryCoreState(
+    val items: List<ConsumableUiModel> = emptyList(),
+    val warnings: List<ScanWarning> = emptyList(),
+    val warningsNonce: Long = 0L,
+    val barcode: String = "",
+    val conflictRfids: List<String> = emptyList(),
+    val flowState: InventoryFlowState = InventoryFlowState.Idle,
+    val awaitingStartAck: Boolean = false,
+    val isInventoryBusy: Boolean = false,
+    val isSubmitting: Boolean = false,
+    val message: UiMessage = UiMessage(),
+    val userName: String = "",
+    val userRole: String = "",
+    val mqttConnected: Boolean? = null,
+    val mqttStatusText: String = "MQTT 探测中"
+) {
+    val canStart: Boolean
+        get() = !isSubmitting && !isInventoryBusy && flowState != InventoryFlowState.Starting && flowState != InventoryFlowState.WaitingAck
+    val canSubmit: Boolean
+        get() = !isSubmitting && items.isNotEmpty()
+}
+
+@Immutable
 data class ConsumableUiModel(
     val id: Int,
     val rfid: String,
