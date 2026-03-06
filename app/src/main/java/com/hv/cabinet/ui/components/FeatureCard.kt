@@ -1,10 +1,13 @@
 package com.hv.cabinet.ui.components
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -29,7 +32,7 @@ fun FeatureCard(
     onClick: () -> Unit,
     onPress: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
-    accent: Color = Color(0xFF52C7EA),
+    accent: Color = Color(0xFF5AA8FF),
     minHeight: androidx.compose.ui.unit.Dp? = null
 ) {
     val spec = rememberCabinetWindowSpec()
@@ -49,15 +52,22 @@ fun FeatureCard(
                 .fillMaxWidth()
                 .heightIn(min = minHeight ?: spec.featureCardMinHeight),
             shape = shape,
-            startColor = Color(0x33254163),
-            endColor = Color(0x20101C31),
-            borderColor = accent.copy(alpha = 0.35f),
+            startColor = Color(0xFF262D39),
+            endColor = Color(0xFF262D39),
+            borderColor = accent.copy(alpha = 0.45f),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(20.dp)
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
+                Spacer(
+                    modifier = Modifier
+                        .fillMaxWidth(0.36f)
+                        .height(3.dp)
+                        .padding(top = 2.dp)
+                        .background(accent, RoundedCornerShape(999.dp))
+                )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,

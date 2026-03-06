@@ -44,6 +44,7 @@ abstract class BaseInventoryViewModel(
 
     private var pendingProcessJob: Job? = null
     private var startAckTimeoutJob: Job? = null
+    private val screenActive = MutableStateFlow(false)
     private val pendingCodes: MutableSet<String> = Collections.synchronizedSet(linkedSetOf())
     private val inventoryBatcher = InventoryEventBatcher(viewModelScope) { batch ->
         enqueueCodes(batch)
@@ -61,7 +62,21 @@ abstract class BaseInventoryViewModel(
         }
 
         viewModelScope.launch {
+            mqttManager.connectionStatus.collectLatest { status ->
+                // yield to ensure subclass properties are initialized before calling updateCore
+                yield()
+                updateCore {
+                    it.copy(
+                        mqttConnected = status.connected,
+                        mqttStatusText = status.badgeText
+                    )
+                }
+            }
+        }
+
+        viewModelScope.launch {
             mqttManager.events.collectLatest { event ->
+                if (!screenActive.value) return@collectLatest
                 when (event) {
                     is InventoryMqttEvent.Tag -> {
                         val core = stateCore()
@@ -107,6 +122,10 @@ abstract class BaseInventoryViewModel(
         updateCore { it.copy(barcode = value) }
     }
 
+    fun onScreenActiveChanged(active: Boolean) {
+        screenActive.value = active
+    }
+
     fun removeItem(rfid: String) {
         updateCore { core ->
             core.copy(
@@ -127,6 +146,7 @@ abstract class BaseInventoryViewModel(
     }
 
     fun startInventory(forceRetry: Boolean = false) {
+        if (!screenActive.value) return
         val core = stateCore()
         if (!forceRetry && (!core.canStart || core.awaitingStartAck)) return
 
@@ -156,15 +176,21 @@ abstract class BaseInventoryViewModel(
             when (val ipResult = repository.resolveInventoryCabinetIps(fallbackIps)) {
                 is AppResult.Success -> when (val result = repository.callInventory(ipResult.value)) {
                     is AppResult.Success -> {
-                        updateCore {
-                            it.copy(
-                                flowState = InventoryFlowState.WaitingAck,
-                                awaitingStartAck = true,
-                                message = UiMessage("已发送盘点命令，等待设备响应", MessageLevel.Info),
-                                conflictRfids = emptyList()
-                            )
+                        val latest = stateCore()
+                        if (!latest.awaitingStartAck || latest.isInventoryBusy || latest.flowState == InventoryFlowState.Inventorying) {
+                            // 设备已先返回开始状态时，不要回退到等待状态，避免出现“盘点中 + 启动超时”矛盾提示。
+                            updateCore { it.copy(conflictRfids = emptyList()) }
+                        } else {
+                            updateCore {
+                                it.copy(
+                                    flowState = InventoryFlowState.WaitingAck,
+                                    awaitingStartAck = true,
+                                    message = UiMessage("已发送盘点命令，等待设备响应", MessageLevel.Info),
+                                    conflictRfids = emptyList()
+                                )
+                            }
+                            scheduleAckTimeout()
                         }
-                        scheduleAckTimeout()
                     }
 
                     is AppResult.Failure -> {
@@ -199,7 +225,10 @@ abstract class BaseInventoryViewModel(
 
     fun onScreenLeave() {
         pendingProcessJob?.cancel()
+        pendingProcessJob = null
         startAckTimeoutJob?.cancel()
+        startAckTimeoutJob = null
+        synchronized(pendingCodes) { pendingCodes.clear() }
         inventoryBatcher.clear()
         viewModelScope.launch { mqttManager.unsubscribeInventoryTopics() }
     }
@@ -268,6 +297,7 @@ abstract class BaseInventoryViewModel(
                 updateCore {
                     it.copy(
                         flowState = InventoryFlowState.Error,
+                        isInventoryBusy = false,
                         awaitingStartAck = false,
                         message = UiMessage("盘点启动超时，请重试", MessageLevel.Warning)
                     )

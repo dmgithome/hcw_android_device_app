@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>耗材屋 灵动交互版 v11 - Intuition</title>
+  <style>
+    :root {
+      --primary: #3E8BFF;
+      --primary-glow: rgba(62, 139, 255, 0.4);
+      --accent: #5ED8AB;
+      --bg-dark: #080C14;
+      --panel-bg: rgba(22, 28, 42, 0.6);
+      --glass-border: rgba(255, 255, 255, 0.1);
+      --text-main: #F0F4FF;
+      --text-dim: #A0B0C8;
+      --radius-lg: 16px;
+      --radius-sm: 8px;
+    }
+
+    * { box-sizing: border-box; -webkit-font-smoothing: antialiased; outline: none; }
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: var(--bg-dark); color: var(--text-main); }
+
+    body {
+      font-family: "PingFang SC", "Hiragino Sans GB", sans-serif;
+      background: radial-gradient(circle at 50% 50%, #101624 0%, var(--bg-dark) 100%);
+    }
+
+    /* 顶部导航 */
+    .header {
+      height: 70px; padding: 0 30px;
+      display: flex; justify-content: space-between; align-items: center;
+      background: rgba(255,255,255,0.02); border-bottom: 1px solid var(--glass-border);
+    }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-icon { width: 32px; height: 32px; background: var(--primary); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 18px; }
+    .brand-text { font-size: 22px; font-weight: 600; letter-spacing: 1px; }
+
+    .system-status { display: flex; gap: 20px; font-size: 14px; color: var(--text-dim); }
+    .status-item { display: flex; align-items: center; gap: 6px; }
+    .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+
+    /* 场景切换 */
+    .scene { display: none; padding: 20px 30px; height: calc(100% - 70px); flex-direction: column; gap: 20px; }
+    .scene.active { display: flex; }
+
+    /* --- 登录场景 --- */
+    .login-wrap { align-items: center; justify-content: center; }
+    .login-card { width: 440px; padding: 50px; background: var(--panel-bg); backdrop-filter: blur(20px); border: 1px solid var(--glass-border); border-radius: var(--radius-lg); text-align: center; }
+    .input-box { width: 100%; height: 56px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: var(--radius-sm); padding: 0 15px; color: white; font-size: 18px; margin-bottom: 20px; transition: 0.3s; }
+    .input-box:focus { border-color: var(--primary); background: rgba(62,139,255,0.05); }
+    .btn-main { width: 100%; height: 60px; background: var(--primary); border: none; border-radius: var(--radius-sm); color: white; font-size: 18px; font-weight: 600; box-shadow: 0 8px 20px var(--primary-glow); cursor: pointer; }
+
+    /* --- 主页场景 --- */
+    .home-wrap { justify-content: center; align-items: center; }
+    .home-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; width: 1000px; }
+    .card-big { background: var(--panel-bg); border: 1px solid var(--glass-border); border-radius: var(--radius-lg); padding: 50px 40px; transition: 0.3s; cursor: pointer; position: relative; overflow: hidden; }
+    .card-big:hover { border-color: var(--primary); transform: translateY(-5px); }
+    .card-big h2 { font-size: 40px; margin: 0 0 10px 0; }
+    .card-big p { color: var(--text-dim); font-size: 16px; margin: 0; }
+
+    /* --- 取用详情场景 (重点重构) --- */
+    .detail-layout { display: grid; grid-template-columns: 360px 1fr; gap: 20px; flex: 1; min-height: 0; }
+
+    /* 侧边栏：术间选择重构 */
+    .sidebar { display: flex; flex-direction: column; gap: 20px; overflow: hidden; }
+    .section-title { font-size: 14px; color: var(--text-dim); font-weight: 600; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+
+    .room-picker { flex: 1; display: flex; flex-direction: column; background: var(--panel-bg); border-radius: var(--radius-lg); border: 1px solid var(--glass-border); padding: 16px; overflow: hidden; }
+    .room-tabs { display: flex; gap: 8px; margin-bottom: 15px; overflow-x: auto; padding-bottom: 5px; }
+    .room-tab { padding: 6px 14px; background: rgba(255,255,255,0.05); border-radius: 99px; font-size: 13px; white-space: nowrap; cursor: pointer; border: 1px solid transparent; }
+    .room-tab.active { background: var(--primary-soft); border-color: var(--primary); color: var(--primary); font-weight: 600; }
+
+    .room-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; overflow-y: auto; flex: 1; padding-right: 5px; }
+    .room-btn { padding: 14px 10px; background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); border-radius: var(--radius-sm); font-size: 15px; text-align: center; transition: 0.2s; cursor: pointer; display: flex; flex-direction: column; gap: 4px; }
+    .room-btn:active { transform: scale(0.95); }
+    .room-btn.active { background: var(--primary); border-color: var(--primary); color: white; font-weight: 700; box-shadow: 0 4px 12px var(--primary-glow); }
+    .room-btn span { font-size: 11px; opacity: 0.7; font-weight: normal; }
+
+    /* 数据主表区 */
+    .main-table-card { background: var(--panel-bg); border-radius: var(--radius-lg); border: 1px solid var(--glass-border); display: flex; flex-direction: column; overflow: hidden; }
+    .table-head { background: rgba(255,255,255,0.05); padding: 15px 25px; display: grid; grid-template-columns: 2fr 1fr 1fr 0.8fr 1fr 0.6fr; font-size: 14px; color: var(--text-dim); border-bottom: 1px solid var(--glass-border); }
+    .table-body { flex: 1; overflow-y: auto; }
+    .table-row { padding: 18px 25px; display: grid; grid-template-columns: 2fr 1fr 1fr 0.8fr 1fr 0.6fr; font-size: 16px; border-bottom: 1px solid rgba(255,255,255,0.03); align-items: center; }
+    .btn-remove { color: #FF6B6B; font-size: 14px; font-weight: 600; cursor: pointer; text-align: right; }
+
+    /* 底部操作 */
+    .footer-bar { height: 90px; display: grid; grid-template-columns: 1fr 1.2fr 1.2fr 1fr; gap: 20px; }
+    .btn-action { height: 70px; border-radius: var(--radius-sm); border: 1px solid var(--glass-border); background: rgba(255,255,255,0.05); color: white; font-size: 18px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; transition: 0.3s; }
+    .btn-action.primary { background: var(--primary); border: none; box-shadow: 0 10px 20px var(--primary-glow); }
+    .btn-action.outline { border-color: var(--primary); color: var(--primary); background: transparent; }
+
+    /* --- 弹窗组件 --- */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(10px); display: none; align-items: center; justify-content: center; z-index: 100; }
+    .modal-overlay.active { display: flex; }
+    .modal-card { width: 460px; background: var(--panel-bg); border: 1px solid var(--glass-border); border-radius: var(--radius-lg); padding: 40px; box-shadow: 0 40px 80px rgba(0,0,0,0.6); text-align: center; }
+    .modal-icon { font-size: 50px; margin-bottom: 20px; }
+    .modal-title { font-size: 24px; font-weight: 700; margin-bottom: 12px; }
+    .modal-desc { color: var(--text-dim); margin-bottom: 30px; line-height: 1.6; }
+    .modal-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    .btn-modal { height: 54px; border-radius: var(--radius-sm); font-weight: 600; font-size: 16px; cursor: pointer; border: none; }
+    .btn-modal.confirm { background: var(--primary); color: white; }
+    .btn-modal.cancel { background: rgba(255,255,255,0.08); color: white; }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <!-- 确认弹窗 -->
+  <div class="modal-overlay" id="confirm-modal">
+    <div class="modal-card">
+      <div class="modal-icon">⚠️</div>
+      <div class="modal-title">确认提交取用记录？</div>
+      <div class="modal-desc">您已选择 <span style="color:white; font-weight:700">3</span> 件耗材，目标位置为 <span style="color:var(--primary); font-weight:700">手术室 A102</span>。</div>
+      <div class="modal-btns">
+        <button class="btn-modal cancel" onclick="closeModal()">取消</button>
+        <button class="btn-modal confirm" onclick="finishAction()">确认提交</button>
+      </div>
+    </div>
+  </div>
+
+  <header class="header">
+    <div class="brand">
+      <div class="brand-icon">H</div>
+      <div class="brand-text">耗材屋 · 智能终端</div>
+    </div>
+    <div class="system-status">
+      <div class="status-item"><div class="status-dot"></div>服务器就绪</div>
+      <div class="status-item">RFID 正常</div>
+      <div id="clock" style="font-weight: 600; color:white">14:30:05</div>
+    </div>
+  </header>
+
+  <!-- 1. 登录场景 -->
+  <main id="scene-login" class="scene active login-wrap">
+    <div class="login-card">
+      <h1 style="font-size: 32px; margin-bottom: 10px;">系统登录</h1>
+      <p style="color: var(--text-dim); margin-bottom: 40px;">请扫描工卡或输入凭据</p>
+      <input type="text" class="input-box" placeholder="用户账号" value="ADMIN_SUPER">
+      <input type="password" class="input-box" placeholder="安全口令" value="••••••••">
+      <button class="btn-main" onclick="showScene('home')">进入系统</button>
+    </div>
+  </main>
+
+  <!-- 2. 主页场景 -->
+  <main id="scene-home" class="scene home-wrap">
+    <div class="home-grid">
+      <div class="card-big" onclick="showScene('detail')">
+        <div style="font-size: 50px; margin-bottom: 15px;">📤</div>
+        <h2>耗材取用</h2>
+        <p>选择术间并扫描 RFID 标签</p>
+      </div>
+      <div class="card-big" onclick="showScene('detail')" style="border-color: rgba(94, 216, 171, 0.2);">
+        <div style="font-size: 50px; margin-bottom: 15px;">📥</div>
+        <h2 style="color: var(--accent);">耗材归还</h2>
+        <p>自动识别归还物资并入库</p>
+      </div>
+    </div>
+  </main>
+
+  <!-- 3. 取用场景 (详细交互重构) -->
+  <main id="scene-detail" class="scene">
+    <div class="detail-layout">
+      <!-- 侧边：术间选择 -->
+      <aside class="sidebar">
+        <div class="room-picker">
+          <div class="section-title">
+            <span>选择目标位置 (术间)</span>
+            <span style="color:var(--primary); font-size:12px;">已选: 手术室 A102</span>
+          </div>
+
+          <!-- 分类标签：术间多时可按区域/楼层切换 -->
+          <div class="room-tabs">
+            <div class="room-tab active">手术部</div>
+            <div class="room-tab">急诊科</div>
+            <div class="room-tab">住院部</div>
+            <div class="room-tab">ICU</div>
+            <div class="room-tab">治疗中心</div>
+          </div>
+
+          <!-- 术间网格：大按钮方便触控 -->
+          <div class="room-grid">
+            <div class="room-btn active">A101<span>张三 · 手术中</span></div>
+            <div class="room-btn">A102<span>空闲</span></div>
+            <div class="room-btn">A103<span>清洁中</span></div>
+            <div class="room-btn">A104<span>空闲</span></div>
+            <div class="room-btn">A105<span>待手术</span></div>
+            <div class="room-btn">A106<span>空闲</span></div>
+            <div class="room-btn">A107<span>空闲</span></div>
+            <div class="room-btn">A108<span>空闲</span></div>
+            <div class="room-btn">A109<span>空闲</span></div>
+            <div class="room-btn">B101<span>维修中</span></div>
+            <!-- 可容纳无限多术间 -->
+          </div>
+        </div>
+
+        <!-- 简单的操作员信息展示 -->
+        <div style="padding:15px; background:rgba(255,255,255,0.02); border:1px solid var(--glass-border); border-radius: var(--radius-lg); font-size:14px;">
+           <span style="color:var(--text-dim)">当前账号:</span> <span style="font-weight:700">张三 (主管护师)</span>
+        </div>
+      </aside>
+
+      <!-- 主表区 -->
+      <section class="main-table-card">
+        <div class="table-head">
+          <span>耗材名称</span><span>规格</span><span>批号</span><span>货位</span><span>数量</span><span>操作</span>
+        </div>
+        <div class="table-body" id="item-list">
+          <div class="table-row">
+            <span style="font-weight:700;">碘伏棉签</span><span>10支/包</span><span>P2601</span><span>A-01</span><span style="color:var(--primary); font-weight:800;">1</span><span class="btn-remove" onclick="this.parentElement.remove()">移除</span>
+          </div>
+          <div class="table-row">
+            <span style="font-weight:700;">无菌手套 (M)</span><span>100只/盒</span><span>G1137</span><span>B-03</span><span style="color:var(--primary); font-weight:800;">1</span><span class="btn-remove" onclick="this.parentElement.remove()">移除</span>
+          </div>
+          <div class="table-row">
+            <span style="font-weight:700;">医用透气胶带</span><span>2.5cm x 5m</span><span>S8892</span><span>A-05</span><span style="color:var(--primary); font-weight:800;">2</span><span class="btn-remove" onclick="this.parentElement.remove()">移除</span>
+          </div>
+        </div>
+        <!-- 统计 -->
+        <div style="padding: 20px 25px; border-top:1px solid var(--glass-border); display:flex; justify-content:space-between; align-items:center; background: rgba(0,0,0,0.2);">
+          <div style="color:var(--text-dim); font-size:14px;">已扫描 <span style="color:white; font-weight:700">3</span> 件，共计 <span style="color:white; font-weight:700">4</span> 个单位</div>
+          <div style="font-size:12px; color:var(--primary);">扫描中... 实时监听 RFID 信号</div>
+        </div>
+      </section>
+    </div>
+
+    <!-- 底部操作 -->
+    <footer class="footer-bar">
+      <div class="btn-action outline">🔄 重新扫描</div>
+      <div class="btn-action primary" onclick="openModal()">确认提交取用</div>
+      <div class="btn-action">✅ 提交并登出</div>
+      <div class="btn-action" style="color:#FF6B6B" onclick="showScene('home')">取消</div>
+    </footer>
+  </main>
+
+  <script>
+    function showScene(id) {
+      document.querySelectorAll('.scene').forEach(s => s.classList.remove('active'));
+      document.getElementById('scene-' + id).classList.add('active');
+    }
+    // 弹窗控制
+    function openModal() { document.getElementById('confirm-modal').classList.add('active'); }
+    function closeModal() { document.getElementById('confirm-modal').classList.remove('active'); }
+    function finishAction() {
+      alert('数据已成功上传至服务器！');
+      closeModal();
+      showScene('home');
+    }
+    // 术间切换模拟
+    document.querySelectorAll('.room-btn').forEach(btn => {
+      btn.onclick = function() {
+        document.querySelectorAll('.room-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+      }
+    });
+    // 时钟
+    setInterval(() => {
+      const now = new Date();
+      document.getElementById('clock').innerText = now.toTimeString().split(' ')[0];
+    }, 1000);
+  </script>
+</body>
+</html>

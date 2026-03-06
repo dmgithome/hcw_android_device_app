@@ -1,7 +1,5 @@
 package com.hv.cabinet.ui.components
 
-import androidx.annotation.DrawableRes
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,9 +28,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.hv.cabinet.ui.layout.CabinetWindowSpec
@@ -54,50 +49,28 @@ fun AppScaffold(
     lightweight: Boolean = false,
     showTopBar: Boolean = true,
     snackbarHostState: SnackbarHostState? = null,
-    @DrawableRes backgroundImageRes: Int? = null,
     content: @Composable (PaddingValues) -> Unit
 ) {
     val windowSpec = rememberCabinetWindowSpec()
-    val perfLite = true
-    val backgroundPainter = backgroundImageRes?.let { painterResource(id = it) }
     val backgroundBrush = remember(variant) {
         when (variant) {
-            AppScaffoldVariant.Login -> Brush.linearGradient(
-                listOf(Color(0xFF031026), Color(0xFF07172D))
+            AppScaffoldVariant.Login -> Brush.verticalGradient(
+                colors = listOf(Color(0xFF171D26), Color(0xFF10151D))
             )
-            AppScaffoldVariant.Home -> Brush.linearGradient(
-                listOf(Color(0xFF031127), Color(0xFF06172C))
+            AppScaffoldVariant.Home -> Brush.verticalGradient(
+                colors = listOf(Color(0xFF162030), Color(0xFF0F151D))
             )
-            AppScaffoldVariant.Business -> Brush.linearGradient(
-                listOf(Color(0xFF041126), Color(0xFF071A31))
+            AppScaffoldVariant.Business -> Brush.verticalGradient(
+                colors = listOf(Color(0xFF151B26), Color(0xFF10151C))
             )
         }
-    }
-
-    val baseBackground = if (lightweight) Color(0xFF061327) else Color.Transparent
-
-    val rootModifier = if (lightweight) {
-        Modifier
-            .fillMaxSize()
-            .background(baseBackground)
-    } else {
-        Modifier
-            .fillMaxSize()
-            .background(backgroundBrush)
     }
 
     Box(
-        modifier = rootModifier
+        modifier = Modifier
+            .fillMaxSize()
+            .background(backgroundBrush)
     ) {
-        if (!lightweight) {
-            BackgroundLayers(
-                variant = variant,
-                painter = backgroundPainter,
-                perfLite = perfLite,
-                windowSpec = windowSpec
-            )
-        }
-
         Scaffold(
             modifier = Modifier.fillMaxSize(),
             containerColor = Color.Transparent,
@@ -106,8 +79,8 @@ fun AppScaffold(
                     SnackbarHost(hostState = snackbarHostState) { data ->
                         Snackbar(
                             snackbarData = data,
-                            containerColor = Color(0xFF1B3A5C),
-                            contentColor = Color.White
+                            containerColor = Color(0xFF2A3240),
+                            contentColor = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
@@ -209,41 +182,6 @@ private fun SimpleTopBar(
 }
 
 @Composable
-private fun BackgroundLayers(
-    variant: AppScaffoldVariant,
-    painter: Painter?,
-    perfLite: Boolean,
-    windowSpec: CabinetWindowSpec
-) {
-    val shouldShowImage = painter != null && (!perfLite || variant == AppScaffoldVariant.Login)
-    if (shouldShowImage) {
-        Image(
-            painter = painter!!,
-            contentDescription = null,
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop,
-            alpha = if (variant == AppScaffoldVariant.Login) {
-                if (windowSpec.isLandscape) 0.38f else 0.32f
-            } else {
-                if (windowSpec.isLandscape) 0.08f else 0.06f
-            }
-        )
-    }
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                color = when (variant) {
-                    AppScaffoldVariant.Login -> Color(0x6A031026)
-                    AppScaffoldVariant.Home -> Color(0x52041022)
-                    AppScaffoldVariant.Business -> Color(0x5E061122)
-                }
-            )
-    )
-}
-
-@Composable
 private fun AppTopBar(
     title: String,
     subtitle: String?,
@@ -253,9 +191,9 @@ private fun AppTopBar(
     windowSpec: CabinetWindowSpec
 ) {
     val panelBorder = when (variant) {
-        AppScaffoldVariant.Home -> Color(0x7752C7EA)
-        AppScaffoldVariant.Login -> Color(0x556E9BE6)
-        AppScaffoldVariant.Business -> Color(0x6652C7EA)
+        AppScaffoldVariant.Home -> Color(0x4D94A0B0)
+        AppScaffoldVariant.Login -> Color(0x4D94A0B0)
+        AppScaffoldVariant.Business -> Color(0x4D94A0B0)
     }
     TransparentPanel(
         modifier = Modifier
@@ -265,8 +203,8 @@ private fun AppTopBar(
                 vertical = windowSpec.topBarOuterPaddingVertical
             ),
         shape = RoundedCornerShape(18.dp),
-        startColor = Color(0x331A3D61),
-        endColor = Color(0x2210213A),
+        startColor = Color(0xFF242A34),
+        endColor = Color(0xFF242A34),
         borderColor = panelBorder,
         contentPadding = PaddingValues(
             horizontal = windowSpec.topBarInnerPaddingHorizontal,
@@ -282,7 +220,7 @@ private fun AppTopBar(
                     onClick = onBack,
                     modifier = Modifier
                         .clip(RoundedCornerShape(12.dp))
-                        .background(Color(0x1AFFFFFF))
+                        .background(Color(0x1A94A0B0))
                         .size(40.dp)
                 ) {
                     Icon(

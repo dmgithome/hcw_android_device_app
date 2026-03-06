@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>耗材屋 CyberVision v8 - 科技感重塑</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+
+    :root {
+      --cyan-bright: #00f2ff;
+      --cyan-glow: rgba(0, 242, 255, 0.3);
+      --green-bright: #39ff14;
+      --green-glow: rgba(57, 255, 20, 0.3);
+      --red-alert: #ff2e2e;
+      --bg-deep: #050a14;
+      --panel-bg: rgba(10, 20, 35, 0.7);
+      --panel-border: rgba(0, 242, 255, 0.2);
+      --text-primary: #e0faff;
+      --text-muted: #88a0b0;
+      --radius: 4px;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; cursor: default; }
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: var(--bg-deep); color: var(--text-primary); }
+
+    body {
+      font-family: "PingFang SC", "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 20% 30%, rgba(0, 100, 255, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 70%, rgba(0, 242, 255, 0.05) 0%, transparent 50%),
+        var(--bg-deep);
+    }
+
+    /* 动态背景网格 */
+    body::before {
+      content: "";
+      position: absolute;
+      inset: -100%;
+      background-image:
+        linear-gradient(to right, rgba(0, 242, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(0, 242, 255, 0.03) 1px, transparent 1px);
+      background-size: 50px 50px;
+      transform: perspective(500px) rotateX(60deg);
+      animation: grid-move 20s linear infinite;
+      z-index: 0;
+    }
+
+    @keyframes grid-move {
+      from { transform: perspective(500px) rotateX(60deg) translateY(0); }
+      to { transform: perspective(500px) rotateX(60deg) translateY(50px); }
+    }
+
+    .app-container {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      height: 100%;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    /* 顶部装饰条 */
+    .header {
+      height: 70px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 20px;
+      border-left: 4px solid var(--cyan-bright);
+      background: linear-gradient(90deg, rgba(0, 242, 255, 0.1), transparent);
+      position: relative;
+    }
+
+    .header::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, var(--cyan-bright), transparent);
+    }
+
+    .header .brand { display: flex; align-items: baseline; gap: 10px; }
+    .header h1 { margin: 0; font-size: 28px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; text-shadow: 0 0 10px var(--cyan-bright); }
+    .header .version { font-family: var(--font-mono); font-size: 12px; color: var(--cyan-bright); opacity: 0.7; }
+    .header .status-bar { display: flex; gap: 20px; font-family: var(--font-mono); font-size: 14px; }
+    .status-item { display: flex; align-items: center; gap: 6px; }
+    .dot { width: 6px; height: 6px; background: var(--green-bright); border-radius: 50%; box-shadow: 0 0 8px var(--green-bright); animation: pulse 2s infinite; }
+
+    @keyframes pulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.8); } 100% { opacity: 1; transform: scale(1); } }
+
+    /* 场景切换 */
+    .scene { display: none; flex: 1; min-height: 0; }
+    .scene.active { display: flex; flex-direction: column; gap: 15px; }
+
+    /* --- LOGIN SCENE --- */
+    .login-box {
+      margin: auto;
+      width: 900px;
+      height: 500px;
+      background: var(--panel-bg);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--panel-border);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      position: relative;
+    }
+
+    .login-box::before, .login-box::after { content: ""; position: absolute; width: 20px; height: 20px; border: 2px solid var(--cyan-bright); }
+    .login-box::before { top: -2px; left: -2px; border-right: 0; border-bottom: 0; }
+    .login-box::after { bottom: -2px; right: -2px; border-left: 0; border-top: 0; }
+
+    .login-art {
+      background: rgba(0, 242, 255, 0.05);
+      border-right: 1px solid var(--panel-border);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* 旋转装饰 */
+    .circle-deco {
+      position: absolute;
+      width: 300px;
+      height: 300px;
+      border: 1px dashed var(--cyan-bright);
+      border-radius: 50%;
+      opacity: 0.2;
+      animation: rotate 20s linear infinite;
+    }
+    @keyframes rotate { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+
+    .login-form { padding: 50px; display: flex; flex-direction: column; gap: 20px; justify-content: center; }
+    .login-tabs { display: flex; gap: 10px; margin-bottom: 10px; }
+    .login-tab { padding: 8px 20px; border: 1px solid var(--panel-border); font-size: 14px; opacity: 0.6; }
+    .login-tab.active { border-color: var(--cyan-bright); opacity: 1; background: rgba(0, 242, 255, 0.1); }
+
+    .input-field {
+      border: 1px solid var(--panel-border);
+      background: rgba(255, 255, 255, 0.05);
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .input-field label { font-size: 11px; color: var(--cyan-bright); font-family: var(--font-mono); }
+    .input-field input { background: transparent; border: none; color: white; font-size: 18px; outline: none; width: 100%; }
+
+    /* --- HOME SCENE --- */
+    .home-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      max-width: 1200px;
+      margin: auto;
+      width: 100%;
+    }
+
+    .home-card {
+      height: 350px;
+      background: linear-gradient(135deg, rgba(0, 242, 255, 0.1), rgba(0, 242, 255, 0.02));
+      border: 1px solid var(--panel-border);
+      padding: 40px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      position: relative;
+      transition: 0.4s;
+      overflow: hidden;
+    }
+
+    .home-card:hover {
+      border-color: var(--cyan-bright);
+      background: linear-gradient(135deg, rgba(0, 242, 255, 0.2), rgba(0, 242, 255, 0.05));
+      box-shadow: 0 0 30px var(--cyan-glow);
+      transform: translateY(-5px);
+    }
+
+    .home-card h2 { font-size: 48px; margin: 0; letter-spacing: 4px; }
+    .home-card p { color: var(--text-muted); font-size: 18px; margin: 15px 0 0 0; line-height: 1.6; }
+    .home-card .icon-bg { position: absolute; top: -20px; right: -20px; font-size: 200px; opacity: 0.05; font-family: var(--font-mono); }
+
+    .home-card.green { border-color: rgba(57, 255, 20, 0.2); }
+    .home-card.green:hover { border-color: var(--green-bright); box-shadow: 0 0 30px var(--green-glow); }
+    .home-card.green h2 { color: var(--green-bright); }
+
+    /* --- DETAIL SCENE --- */
+    .main-layout { display: grid; grid-template-columns: 1fr 3fr; gap: 15px; flex: 1; min-height: 0; }
+    .hud-card { background: var(--panel-bg); backdrop-filter: blur(20px); border: 1px solid var(--panel-border); position: relative; padding: 15px; }
+    .hud-card::before, .hud-card::after { content: ""; position: absolute; width: 10px; height: 10px; border: 2px solid var(--cyan-bright); }
+    .hud-card::before { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
+    .hud-card::after { bottom: -1px; right: -1px; border-left: 0; border-top: 0; }
+
+    .hud-title { font-family: var(--font-mono); font-size: 14px; color: var(--cyan-bright); margin-bottom: 12px; display: flex; justify-content: space-between; border-bottom: 1px solid rgba(0, 242, 255, 0.1); padding-bottom: 5px; }
+
+    .data-table-container { flex: 1; background: var(--panel-bg); backdrop-filter: blur(20px); border: 1px solid var(--panel-border); position: relative; overflow: hidden; display: flex; flex-direction: column; }
+    .table-header { background: rgba(0, 242, 255, 0.05); display: grid; grid-template-columns: 2fr 1.5fr 1fr 1fr 1fr 1fr; padding: 12px; font-size: 13px; font-weight: bold; color: var(--cyan-bright); border-bottom: 1px solid var(--panel-border); }
+    .table-body { flex: 1; overflow-y: auto; }
+    .table-row { display: grid; grid-template-columns: 2fr 1.5fr 1fr 1fr 1fr 1fr; padding: 12px; font-size: 14px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+
+    .footer-actions { height: 100px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
+    .cyber-btn { position: relative; background: rgba(0, 242, 255, 0.1); border: 1px solid var(--cyan-bright); color: var(--cyan-bright); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; text-transform: uppercase; font-weight: bold; letter-spacing: 1px; transition: all 0.3s; }
+    .cyber-btn:hover { background: var(--cyan-bright); color: var(--bg-deep); box-shadow: 0 0 20px var(--cyan-glow); }
+    .cyber-btn.main { background: var(--cyan-bright); color: var(--bg-deep); }
+    .cyber-btn.danger { border-color: var(--red-alert); color: var(--red-alert); background: rgba(255, 46, 46, 0.1); }
+
+    .scan-line { position: absolute; top: 0; left: 0; width: 100%; height: 2px; background: linear-gradient(90deg, transparent, var(--cyan-bright), transparent); animation: scan 4s linear infinite; pointer-events: none; z-index: 2; }
+    @keyframes scan { 0% { top: 0; opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
+
+    .loc-chip { padding: 6px 12px; border: 1px solid rgba(0, 242, 255, 0.3); font-size: 13px; background: rgba(0, 242, 255, 0.05); }
+    .loc-chip.active { background: var(--cyan-bright); color: var(--bg-deep); box-shadow: 0 0 10px var(--cyan-glow); }
+
+    .visualizer { height: 40px; display: flex; align-items: flex-end; gap: 2px; }
+    .bar { flex: 1; background: var(--cyan-bright); opacity: 0.3; animation: bar-dance 1s ease-in-out infinite alternate; }
+    @keyframes bar-dance { from { height: 10%; } to { height: 100%; } }
+
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <header class="header">
+      <div class="brand">
+        <h1>HV CABINET <span style="font-weight: 200; opacity: 0.5;">CORE</span></h1>
+        <span class="version">V 2.0.4 // SYSTEM ACTIVE</span>
+      </div>
+      <nav style="display: flex; gap: 15px;">
+         <button onclick="showScene('login')" style="background:transparent; border:1px solid var(--panel-border); color:var(--cyan-bright); font-family:var(--font-mono); font-size:10px; padding:4px 8px;">DEBUG: LOGIN</button>
+         <button onclick="showScene('home')" style="background:transparent; border:1px solid var(--panel-border); color:var(--cyan-bright); font-family:var(--font-mono); font-size:10px; padding:4px 8px;">DEBUG: HOME</button>
+         <button onclick="showScene('detail')" style="background:transparent; border:1px solid var(--panel-border); color:var(--cyan-bright); font-family:var(--font-mono); font-size:10px; padding:4px 8px;">DEBUG: DETAIL</button>
+      </nav>
+      <div class="status-bar">
+        <div class="status-item"><span class="dot"></span><span>SERVER: ONLINE</span></div>
+        <div class="status-item" id="clock">10:24:45</div>
+      </div>
+    </header>
+
+    <!-- 登录场景 -->
+    <main id="scene-login" class="scene active">
+      <div class="login-box">
+        <div class="login-art">
+          <div class="circle-deco"></div>
+          <h1 style="font-size: 60px; margin: 0; color: var(--cyan-bright);">ACCESS</h1>
+          <p style="letter-spacing: 5px; opacity: 0.7;">身份验证系统</p>
+        </div>
+        <div class="login-form">
+          <div class="login-tabs">
+            <div class="login-tab active">ACCOUNT</div>
+            <div class="login-tab">NFC / RFID</div>
+            <div class="login-tab">BIOMETRIC</div>
+          </div>
+          <div class="input-field">
+            <label>IDENTIFIER</label>
+            <input type="text" placeholder="ENTER ID / USERNAME" value="ADMIN_SUPER">
+          </div>
+          <div class="input-field">
+            <label>ACCESS CODE</label>
+            <input type="password" placeholder="••••••••" value="123456">
+          </div>
+          <button class="cyber-btn main" style="height: 60px; width: 100%;" onclick="showScene('home')">INITIATE SESSION</button>
+          <p style="text-align: center; font-size: 12px; color: var(--red-alert); margin: 0;">UNAUTHORIZED ACCESS IS LOGGED</p>
+        </div>
+      </div>
+    </main>
+
+    <!-- 主场景 -->
+    <main id="scene-home" class="scene">
+      <div class="home-grid">
+        <div class="home-card" onclick="showScene('detail')">
+          <div class="icon-bg">TAKE</div>
+          <h2>耗材取用</h2>
+          <p>进入自动化盘点流程，实时监控 RFID 标签变动。支持单品及批量出库。</p>
+          <div style="margin-top: 20px; color: var(--cyan-bright); font-family: var(--font-mono);">ENTER SYSTEM ></div>
+        </div>
+        <div class="home-card green" onclick="showScene('detail')">
+          <div class="icon-bg">RETURN</div>
+          <h2>耗材归还</h2>
+          <p>智能识别归还物品，自动匹配原始订单与库存位置。确保账实相符。</p>
+          <div style="margin-top: 20px; color: var(--green-bright); font-family: var(--font-mono);">ENTER SYSTEM ></div>
+        </div>
+      </div>
+    </main>
+
+    <!-- 详情/取用场景 -->
+    <main id="scene-detail" class="scene">
+      <div class="main-layout">
+        <section class="sidebar">
+          <div class="hud-card">
+            <div class="hud-title"><span>OPERATOR INFO</span><span>[ID: 082]</span></div>
+            <div style="font-size: 20px; font-weight: bold; margin-bottom: 5px;">张三 (SUPER)</div>
+            <div style="font-size: 14px; color: var(--text-muted);">手术室 - 一级权限</div>
+          </div>
+          <div class="hud-card" style="flex: 1;">
+            <div class="hud-title"><span>SYSTEM STATS</span></div>
+            <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 10px;">
+              RFID 扫描频率: 10Hz<br>
+              当前设备温度: 28°C<br>
+              货柜门状态: <span style="color: var(--green-bright)">CLOSED</span>
+            </div>
+            <div class="visualizer">
+              <div class="bar" style="animation-delay: 0.1s"></div>
+              <div class="bar" style="animation-delay: 0.3s"></div>
+              <div class="bar" style="animation-delay: 0.2s"></div>
+              <div class="bar" style="animation-delay: 0.5s"></div>
+              <div class="bar" style="animation-delay: 0.4s"></div>
+            </div>
+          </div>
+          <div class="hud-card">
+            <div class="hud-title"><span>TARGET LOCATION</span></div>
+            <div style="display:flex; flex-wrap:wrap; gap:5px;">
+              <div class="loc-chip active">治疗室 A</div>
+              <div class="loc-chip">清创室</div>
+              <div class="loc-chip">门诊 2</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="data-table-container">
+          <div class="scan-line"></div>
+          <div class="table-header">
+            <span>CONSUMABLE NAME</span><span>SPEC</span><span>LOT</span><span>CABINET</span><span>QTY</span><span>ID</span>
+          </div>
+          <div class="table-body">
+            <div class="table-row">
+              <span style="font-weight: bold;">碘伏棉签</span><span>10支/包</span><span style="font-family: var(--font-mono)">P2026</span><span>A-01</span><span style="color: var(--cyan-bright);">1</span><span style="color:var(--green-bright); font-size:10px;">RFID-9A2F</span>
+            </div>
+            <div class="table-row">
+              <span style="font-weight: bold;">医用手套 (M)</span><span>100只/盒</span><span style="font-family: var(--font-mono)">G113</span><span>B-03</span><span style="color: var(--cyan-bright);">1</span><span style="color:var(--green-bright); font-size:10px;">RFID-7CD1</span>
+            </div>
+          </div>
+          <div style="padding: 10px; border-top: 1px solid var(--panel-border); font-size: 12px; display: flex; justify-content: space-between;">
+            <span style="color: var(--text-muted)">SCANNED: 02</span><span style="color: var(--cyan-bright)">PAGE 01 / 01</span>
+          </div>
+        </section>
+      </div>
+      <footer class="footer-actions">
+        <div class="cyber-btn main"><span>SCAN / REFRESH</span></div>
+        <div class="cyber-btn"><span>CONFIRM TAKE</span></div>
+        <div class="cyber-btn"><span>CONFIRM & EXIT</span></div>
+        <div class="cyber-btn danger" onclick="showScene('home')"><span>ABORT</span></div>
+      </footer>
+    </main>
+  </div>
+
+  <script>
+    function showScene(id) {
+      document.querySelectorAll('.scene').forEach(s => s.classList.remove('active'));
+      document.getElementById('scene-' + id).classList.add('active');
+    }
+    setInterval(() => {
+      const now = new Date();
+      document.getElementById('clock').innerText = now.toTimeString().split(' ')[0];
+    }, 1000);
+  </script>
+</body>
+</html>

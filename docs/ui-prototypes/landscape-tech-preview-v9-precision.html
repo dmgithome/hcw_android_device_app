@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>耗材屋 简约科技版 v9 - 精密医疗风</title>
+  <style>
+    :root {
+      --primary: #2A82E4;
+      --primary-soft: rgba(42, 130, 228, 0.15);
+      --success: #34C759;
+      --danger: #FF3B30;
+      --warning: #FF9500;
+      --bg-base: #0A0F16;
+      --bg-panel: #161C26;
+      --bg-surface: #1C2431;
+      --border: rgba(255, 255, 255, 0.08);
+      --text-main: #FFFFFF;
+      --text-muted: #8E96A4;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+    }
+
+    * { box-sizing: border-box; -webkit-font-smoothing: antialiased; cursor: default; }
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: var(--bg-base); color: var(--text-main); }
+
+    body {
+      font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    }
+
+    /* 布局容器 */
+    .app-wrapper {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      padding: 16px;
+      gap: 16px;
+    }
+
+    /* 顶部导航 */
+    .app-header {
+      height: 64px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 8px;
+    }
+
+    .brand-section { display: flex; align-items: center; gap: 12px; }
+    .brand-logo { width: 32px; height: 32px; background: var(--primary); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+    .brand-title { font-size: 24px; font-weight: 600; letter-spacing: 1px; }
+
+    .status-group { display: flex; gap: 24px; font-size: 14px; color: var(--text-muted); }
+    .status-item { display: flex; align-items: center; gap: 6px; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); }
+
+    /* 场景切换容器 */
+    .scene { display: none; flex: 1; min-height: 0; }
+    .scene.active { display: flex; flex-direction: column; }
+
+    /* --- 场景：登录 --- */
+    .login-container { margin: auto; width: 480px; text-align: center; }
+    .login-card {
+      background: var(--bg-panel);
+      padding: 40px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+    }
+    .login-title { font-size: 32px; margin: 0 0 8px 0; }
+    .login-subtitle { color: var(--text-muted); margin-bottom: 40px; }
+
+    .input-group { text-align: left; margin-bottom: 24px; }
+    .input-group label { display: block; font-size: 13px; color: var(--text-muted); margin-bottom: 8px; }
+    .input-box {
+      width: 100%;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      padding: 14px 16px;
+      border-radius: var(--radius-sm);
+      color: white;
+      font-size: 16px;
+    }
+
+    .btn-submit {
+      width: 100%;
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 16px;
+      border-radius: var(--radius-sm);
+      font-size: 18px;
+      font-weight: 600;
+      margin-top: 10px;
+    }
+
+    /* --- 场景：主页 --- */
+    .home-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      max-width: 1000px;
+      margin: auto;
+      width: 100%;
+    }
+
+    .action-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 48px 32px;
+      text-align: center;
+      transition: all 0.2s ease;
+    }
+    .action-card:active { transform: scale(0.98); background: var(--bg-surface); }
+    .action-card .icon-placeholder {
+      width: 80px;
+      height: 80px;
+      background: var(--primary-soft);
+      border-radius: 20px;
+      margin: 0 auto 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      color: var(--primary);
+    }
+    .action-card h2 { font-size: 36px; margin: 0 0 12px 0; }
+    .action-card p { color: var(--text-muted); font-size: 16px; line-height: 1.6; margin: 0; }
+
+    /* --- 场景：详情/列表 --- */
+    .main-layout { display: grid; grid-template-columns: 280px 1fr; gap: 16px; flex: 1; min-height: 0; }
+
+    .sidebar { display: flex; flex-direction: column; gap: 16px; }
+    .info-panel {
+      background: var(--bg-panel);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      padding: 20px;
+    }
+    .panel-label { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px; }
+    .panel-value { font-size: 18px; font-weight: 600; margin-bottom: 16px; }
+
+    .data-section {
+      background: var(--bg-panel);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .table-head {
+      background: rgba(255,255,255,0.03);
+      padding: 14px 20px;
+      display: grid;
+      grid-template-columns: 2fr 1.5fr 1.2fr 1fr 0.8fr 1.2fr;
+      font-size: 14px;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .table-row {
+      padding: 16px 20px;
+      display: grid;
+      grid-template-columns: 2fr 1.5fr 1.2fr 1fr 0.8fr 1.2fr;
+      font-size: 15px;
+      border-bottom: 1px solid var(--border);
+      align-items: center;
+    }
+
+    .footer-bar {
+      height: 80px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    .action-btn {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      border-radius: var(--radius-sm);
+      font-size: 18px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .action-btn.primary { background: var(--primary); border: none; }
+    .action-btn.outline { border-color: var(--primary); color: var(--primary); background: transparent; }
+
+    .tag {
+      background: rgba(255,255,255,0.1);
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .hidden { display: none; }
+
+    /* 位置选择器 */
+    .loc-chips { display: flex; flex-direction: column; gap: 8px; }
+    .loc-chip {
+      padding: 12px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+    }
+    .loc-chip.active { border-color: var(--primary); background: var(--primary-soft); color: var(--primary); font-weight: bold; }
+
+  </style>
+</head>
+<body>
+
+  <div class="app-wrapper">
+    <!-- 顶部 -->
+    <header class="app-header">
+      <div class="brand-section">
+        <div class="brand-logo">H</div>
+        <div class="brand-title">耗材屋系统</div>
+      </div>
+      <div class="status-group">
+        <div class="status-item"><div class="status-dot"></div>网络已连接</div>
+        <div class="status-item">MQTT: 正常</div>
+        <div id="timer" style="font-family: monospace;">14:30:05</div>
+      </div>
+    </header>
+
+    <!-- 登录场景 -->
+    <main id="scene-login" class="scene active">
+      <div class="login-container">
+        <div class="login-card">
+          <h1 class="login-title">身份核验</h1>
+          <p class="login-subtitle">请使用您的工号或刷卡进行登录</p>
+
+          <div class="input-group">
+            <label>工号 / 账号</label>
+            <div class="input-box">ADMIN_001</div>
+          </div>
+          <div class="input-group">
+            <label>安全口令</label>
+            <div class="input-box">••••••••</div>
+          </div>
+
+          <button class="btn-submit" onclick="showScene('home')">立即登录</button>
+        </div>
+      </div>
+    </main>
+
+    <!-- 主场景 -->
+    <main id="scene-home" class="scene">
+      <div class="home-grid">
+        <div class="action-card" onclick="showScene('detail')">
+          <div class="icon-placeholder">取</div>
+          <h2>耗材取用</h2>
+          <p>开始进行耗材盘点与出库操作</p>
+        </div>
+        <div class="action-card" onclick="showScene('detail')">
+          <div class="icon-placeholder" style="color:var(--success); background:rgba(52,199,89,0.1);">还</div>
+          <h2>耗材归还</h2>
+          <p>将使用剩余的耗材登记入库</p>
+        </div>
+      </div>
+    </main>
+
+    <!-- 详情场景 -->
+    <main id="scene-detail" class="scene">
+      <div class="main-layout">
+        <!-- 侧边 -->
+        <aside class="sidebar">
+          <div class="info-panel">
+            <div class="panel-label">当前操作员</div>
+            <div class="panel-value">张三 (主管护师)</div>
+
+            <div class="panel-label">设备状态</div>
+            <div class="panel-value" style="color:var(--success); font-size: 14px;">柜门已关闭 / 扫描器就绪</div>
+          </div>
+
+          <div class="info-panel" style="flex:1">
+            <div class="panel-label" style="margin-bottom:12px;">目标位置</div>
+            <div class="loc-chips">
+              <div class="loc-chip active">手术室 A1</div>
+              <div class="loc-chip">住院部 2楼</div>
+              <div class="loc-chip">急诊科</div>
+              <div class="loc-chip">治疗室</div>
+            </div>
+          </div>
+        </aside>
+
+        <!-- 数据 -->
+        <section class="data-section">
+          <div class="table-head">
+            <span>耗材名称</span><span>规格型号</span><span>批号</span><span>货位</span><span>数量</span><span>唯一码</span>
+          </div>
+          <div style="flex:1; overflow-y: auto;">
+            <div class="table-row">
+              <span style="font-weight:600;">碘伏棉签</span><span>10支/包</span><span>P202601</span><span>A-01</span><span style="color:var(--primary); font-weight:bold;">1</span><span class="tag">RFID-9A2F</span>
+            </div>
+            <div class="table-row">
+              <span style="font-weight:600;">一次性手套 (M)</span><span>100只/盒</span><span>G113-X</span><span>B-03</span><span style="color:var(--primary); font-weight:bold;">1</span><span class="tag">RFID-7CD1</span>
+            </div>
+            <div class="table-row">
+              <span style="font-weight:600;">医用纱布</span><span>8cm x 8cm</span><span>S889-W</span><span>A-05</span><span style="color:var(--primary); font-weight:bold;">2</span><span class="tag">RFID-5FA8</span>
+            </div>
+          </div>
+          <div style="padding:16px; border-top:1px solid var(--border); font-size:14px; color:var(--text-muted); display:flex; justify-content: space-between;">
+            <span>已识别项: 04</span>
+            <span>第 1 / 1 页</span>
+          </div>
+        </section>
+      </div>
+
+      <!-- 底部操作 -->
+      <footer class="footer-bar">
+        <div class="action-btn outline">重试 / 刷新</div>
+        <div class="action-btn primary">确认取用</div>
+        <div class="action-btn">确认并登出</div>
+        <div class="action-btn" style="color:var(--danger)" onclick="showScene('home')">取消操作</div>
+      </footer>
+    </main>
+  </div>
+
+  <script>
+    function showScene(id) {
+      document.querySelectorAll('.scene').forEach(s => s.classList.remove('active'));
+      document.getElementById('scene-' + id).classList.add('active');
+    }
+    // 时钟
+    setInterval(() => {
+      const now = new Date();
+      document.getElementById('timer').innerText = now.toTimeString().split(' ')[0];
+    }, 1000);
+  </script>
+</body>
+</html>

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hv.cabinet.core.PerfMonitor
 import com.hv.cabinet.data.api.CabinetRepository
+import com.hv.cabinet.data.mqtt.MqttManager
 import com.hv.cabinet.data.store.AppPreferences
 import com.hv.cabinet.domain.UiMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -17,7 +18,8 @@ import javax.inject.Inject
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val repository: CabinetRepository,
-    appPreferences: AppPreferences
+    appPreferences: AppPreferences,
+    private val mqttManager: MqttManager
 ) : ViewModel() {
     private val _state = MutableStateFlow(HomeUiState())
     val state: StateFlow<HomeUiState> = _state.asStateFlow()
@@ -36,6 +38,15 @@ class HomeViewModel @Inject constructor(
                         repository.prefetchTakeTargetLocations()
                     }
                 }
+            }
+        }
+
+        viewModelScope.launch {
+            mqttManager.connectionStatus.collectLatest { status ->
+                _state.value = _state.value.copy(
+                    mqttConnected = status.connected,
+                    mqttStatusText = status.badgeText
+                )
             }
         }
     }
@@ -80,6 +91,8 @@ class HomeViewModel @Inject constructor(
 data class HomeUiState(
     val userName: String = "",
     val userRole: String = "",
+    val mqttConnected: Boolean? = null,
+    val mqttStatusText: String = "MQTT 探测中",
     val routeLocked: Boolean = false,
     val showLogoutDialog: Boolean = false,
     val message: UiMessage = UiMessage()

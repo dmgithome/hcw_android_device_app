@@ -40,6 +40,7 @@ fun LocationChoiceStrip(
     selectedId: String,
     loading: Boolean,
     onSelect: (String) -> Unit,
+    showHeader: Boolean = true,
     layoutMode: LocationChoiceLayoutMode = LocationChoiceLayoutMode.Auto,
     modifier: Modifier = Modifier
 ) {
@@ -73,26 +74,47 @@ fun LocationChoiceStrip(
                 }
             } else {
                 Text(
-                    text = "目标位置（选择）：暂无可选地点（仅显示房间，已排除默认地点）",
+                    text = if (showHeader) {
+                        "目标位置（选择）：暂无可选地点（仅显示房间，已排除默认地点）"
+                    } else {
+                        "暂无可选地点（仅显示房间，已排除默认地点）"
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             return@Column
         }
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text(
-                text = "目标位置（选择）",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary
-            )
-            if (loading) {
+        if (showHeader) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "目标位置（选择）",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                if (loading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(14.dp),
+                        strokeWidth = 2.dp
+                    )
+                }
+            }
+        } else if (loading) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(14.dp),
                     strokeWidth = 2.dp
+                )
+                Text(
+                    text = "目标位置加载中...",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -100,7 +122,7 @@ fun LocationChoiceStrip(
             FlowRow(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 8.dp),
+                    .padding(top = if (showHeader) 8.dp else 2.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
@@ -116,7 +138,7 @@ fun LocationChoiceStrip(
             LazyRow(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 8.dp),
+                    .padding(top = if (showHeader) 8.dp else 2.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(end = 4.dp)
             ) {
@@ -139,8 +161,16 @@ private fun LocationChoiceChip(
     onSelect: (String) -> Unit
 ) {
     val shape = RoundedCornerShape(999.dp)
-    val bg = if (selected) MaterialTheme.colorScheme.primary else Color(0x223A4F68)
-    val border = if (selected) MaterialTheme.colorScheme.primary else Color(0x33546E8C)
+    val bg = if (selected) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.75f)
+    }
+    val border = if (selected) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.outline.copy(alpha = 0.45f)
+    }
     androidx.compose.foundation.layout.Box(
         modifier = Modifier
             .clip(shape)

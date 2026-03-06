@@ -88,7 +88,7 @@ fun ConfirmButton(
     onClick: () -> Unit
 ) {
     val spec = rememberCabinetWindowSpec()
-    val gold = Color(0xFFD4A843)
+    val tone = MaterialTheme.colorScheme.tertiary
     Button(
         modifier = modifier
             .height(spec.buttonHeight)
@@ -96,8 +96,8 @@ fun ConfirmButton(
         enabled = enabled && !loading,
         shape = RoundedCornerShape(999.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = gold,
-            contentColor = Color.Black
+            containerColor = tone,
+            contentColor = MaterialTheme.colorScheme.onTertiary
         ),
         onClick = onClick
     ) {
@@ -120,16 +120,16 @@ fun OutlinedConfirmButton(
     onClick: () -> Unit
 ) {
     val spec = rememberCabinetWindowSpec()
-    val gold = Color(0xFFD4A843)
+    val tone = MaterialTheme.colorScheme.tertiary
     OutlinedButton(
         modifier = modifier
             .height(spec.buttonHeight)
             .widthIn(min = 128.dp),
         enabled = enabled,
         shape = RoundedCornerShape(999.dp),
-        border = BorderStroke(1.dp, SolidColor(gold.copy(alpha = 0.6f))),
+        border = BorderStroke(1.dp, SolidColor(tone.copy(alpha = 0.7f))),
         colors = ButtonDefaults.outlinedButtonColors(
-            contentColor = gold
+            contentColor = tone
         ),
         onClick = onClick
     ) {
@@ -152,7 +152,7 @@ fun DangerActionButton(
         enabled = enabled,
         shape = RoundedCornerShape(999.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = Color(0xFF40617A),
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
             contentColor = MaterialTheme.colorScheme.onSurface
         ),
         onClick = onClick

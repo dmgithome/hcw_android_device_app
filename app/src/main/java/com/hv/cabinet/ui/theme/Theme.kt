@@ -3,26 +3,28 @@ package com.hv.cabinet.ui.theme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 
 private val DarkColors = darkColorScheme(
-    primary = Cyan400,
-    onPrimary = Blue980,
-    primaryContainer = Blue700,
-    onPrimaryContainer = Gray100,
-    secondary = Mint400,
-    onSecondary = Blue980,
-    secondaryContainer = Blue900,
-    onSecondaryContainer = Gray100,
-    tertiary = Amber400,
-    onTertiary = Blue980,
-    error = Red430,
-    background = Blue980,
-    onBackground = Gray100,
-    surface = Blue950,
-    onSurface = Gray100,
-    surfaceVariant = Blue900,
-    onSurfaceVariant = Gray300,
-    outline = Gray300
+    primary = PrimaryStart,
+    onPrimary = Color.White,
+    primaryContainer = PrimaryEnd,
+    onPrimaryContainer = Color.White,
+    secondary = AccentMint,
+    onSecondary = BgDark,
+    secondaryContainer = PanelBg,
+    onSecondaryContainer = TextMain,
+    tertiary = WarnStart,
+    onTertiary = Color.White,
+    error = DangerStart,
+    onError = Color.White,
+    background = BgDark,
+    onBackground = TextMain,
+    surface = PanelBg,
+    onSurface = TextMain,
+    surfaceVariant = BtnBaseStart,
+    onSurfaceVariant = TextDim,
+    outline = GlassBorder
 )
 
 @Composable

@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>耗材屋 纯粹视觉版 v13 - PureSense</title>
+  <style>
+    :root {
+      --primary: #3E8BFF;
+      --primary-glow: rgba(62, 139, 255, 0.3);
+      --accent: #5ED8AB;
+      --bg-dark: #080C14;
+      --panel-bg: rgba(22, 28, 42, 0.6);
+      --glass-border: rgba(255, 255, 255, 0.1);
+      --text-main: #F0F4FF;
+      --text-dim: #A0B0C8;
+      --radius-lg: 12px;
+      --radius-sm: 6px;
+    }
+
+    * { box-sizing: border-box; -webkit-font-smoothing: antialiased; outline: none; }
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: var(--bg-dark); color: var(--text-main); }
+
+    body {
+      font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background: radial-gradient(circle at 50% 0%, #121A2A 0%, var(--bg-dark) 100%);
+    }
+
+    /* 顶部导航：完全去图标，纯文字排版 */
+    .header {
+      height: 70px; padding: 0 40px;
+      display: flex; justify-content: space-between; align-items: center;
+      background: rgba(255,255,255,0.01); border-bottom: 1px solid var(--glass-border);
+    }
+    .brand { display: flex; align-items: baseline; gap: 8px; }
+    .brand-text { font-size: 22px; font-weight: 700; letter-spacing: 2px; }
+    .brand-sub { font-size: 12px; color: var(--primary); font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+
+    .user-info { display: flex; align-items: center; gap: 20px; font-size: 14px; }
+    .user-name { font-weight: 600; color: white; border-right: 1px solid var(--glass-border); padding-right: 20px; }
+
+    /* 场景容器 */
+    .scene { display: none; padding: 20px 30px; height: calc(100% - 70px); flex-direction: column; gap: 16px; }
+    .scene.active { display: flex; }
+
+    /* --- 取用界面布局 --- */
+
+    /* 顶部控制面板 */
+    .control-panel {
+      background: var(--panel-bg);
+      backdrop-filter: blur(30px);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-lg);
+      padding: 16px 24px;
+      display: flex; flex-direction: column; gap: 20px;
+    }
+
+    /* 增加按钮间距，提升触控精准度与呼吸感 */
+    .action-row {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px; /* 大幅增加间距 */
+    }
+
+    .btn-action {
+      height: 68px; border-radius: var(--radius-sm); border: 1px solid var(--glass-border);
+      background: rgba(255,255,255,0.04); color: white; font-size: 18px; font-weight: 600;
+      display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;
+      letter-spacing: 2px;
+    }
+    .btn-action:active { transform: scale(0.97); }
+    .btn-action.primary { background: var(--primary); border: none; box-shadow: 0 10px 20px var(--primary-glow); }
+    .btn-action.warn { background: #CFA971; color: #1E1600; border: none; }
+
+    /* 术间选择：精密水平选择条 */
+    .location-section {
+      border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px;
+    }
+    .location-label { font-size: 12px; color: var(--text-dim); margin-bottom: 12px; letter-spacing: 1px; }
+
+    .location-grid {
+      display: flex; gap: 10px; overflow-x: auto; padding-bottom: 5px;
+      scrollbar-width: none;
+    }
+    .location-grid::-webkit-scrollbar { display: none; }
+
+    .loc-chip {
+      padding: 12px 24px; background: rgba(255,255,255,0.02);
+      border: 1px solid var(--glass-border); border-radius: 4px;
+      white-space: nowrap; font-size: 14px; cursor: pointer; transition: 0.2s;
+      color: var(--text-dim);
+    }
+    .loc-chip.active {
+      background: rgba(62, 139, 255, 0.1); border-color: var(--primary); color: var(--primary); font-weight: 700;
+    }
+
+    /* 底部表格区 */
+    .table-container {
+      flex: 1; min-height: 0;
+      background: var(--panel-bg);
+      backdrop-filter: blur(30px);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-lg);
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+
+    .table-head {
+      background: rgba(255,255,255,0.04); padding: 15px 30px;
+      display: grid; grid-template-columns: 2fr 1.2fr 1.2fr 1fr 0.8fr 1.5fr 0.8fr;
+      font-size: 13px; color: var(--text-dim); border-bottom: 1px solid var(--glass-border);
+      letter-spacing: 1px; font-weight: 600;
+    }
+    .table-body { flex: 1; overflow-y: auto; }
+    .table-row {
+      padding: 18px 30px; display: grid; grid-template-columns: 2fr 1.2fr 1.2fr 1fr 0.8fr 1.5fr 0.8fr;
+      font-size: 16px; border-bottom: 1px solid rgba(255,255,255,0.02); align-items: center;
+    }
+    .table-row:hover { background: rgba(255,255,255,0.02); }
+
+    .val-main { font-weight: 700; font-size: 17px; }
+    .val-qty { color: var(--primary); font-weight: 800; font-size: 20px; }
+    .val-tag { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--accent); opacity: 0.8; }
+    .btn-remove { color: #FF6B6B; font-size: 13px; font-weight: 600; cursor: pointer; text-align: right; opacity: 0.7; transition: 0.2s; }
+    .btn-remove:hover { opacity: 1; }
+
+    /* 分页与统计：全文字设计 */
+    .pager {
+      height: 60px; padding: 0 30px; background: rgba(0,0,0,0.3);
+      border-top: 1px solid var(--glass-border);
+      display: flex; justify-content: space-between; align-items: center; font-size: 14px;
+    }
+    .pager-info { color: var(--text-dim); }
+    .pager-info b { color: white; margin: 0 4px; }
+
+    .pager-btns { display: flex; gap: 15px; align-items: center; }
+    .text-link { color: var(--primary); font-weight: 600; cursor: pointer; padding: 5px 10px; }
+
+    /* 弹窗：纯文字精密感 */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(20px); display: none; align-items: center; justify-content: center; z-index: 100; }
+    .modal-overlay.active { display: flex; }
+    .modal-card {
+      width: 480px; background: var(--panel-bg); border: 1px solid var(--glass-border); border-radius: var(--radius-lg); padding: 45px;
+      box-shadow: 0 50px 100px rgba(0,0,0,0.5); text-align: center;
+    }
+    .modal-title { font-size: 26px; font-weight: 700; margin-bottom: 15px; letter-spacing: 1px; }
+    .modal-desc { color: var(--text-dim); line-height: 1.8; margin-bottom: 35px; font-size: 16px; }
+    .modal-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+    .hidden { display: none !important; }
+
+    /* 页脚 */
+    .footer-cancel { text-align: center; padding: 10px; }
+    .btn-cancel-text { background: none; border: none; color: #FF6B6B; font-size: 14px; font-weight: 600; cursor: pointer; letter-spacing: 1px; opacity: 0.8; }
+  </style>
+</head>
+<body>
+
+  <!-- 确认弹窗 -->
+  <div class="modal-overlay" id="confirm-modal">
+    <div class="modal-card">
+      <div class="modal-title">提交记录核对</div>
+      <div class="modal-desc">
+        即将提交 <span style="color:white; font-weight:700">3</span> 项耗材记录<br>
+        目标术间: <span style="color:var(--primary); font-weight:700">手术室 A102</span>
+      </div>
+      <div class="modal-btns">
+        <button class="btn-action" style="height: 54px; font-size: 16px;" onclick="closeModal()">返回修改</button>
+        <button class="btn-action primary" style="height: 54px; font-size: 16px;" onclick="finish()">确认提交</button>
+      </div>
+    </div>
+  </div>
+
+  <header class="header">
+    <div class="brand">
+      <div class="brand-text">耗材屋</div>
+      <div class="brand-sub">Smart Terminal</div>
+    </div>
+    <div class="user-info">
+      <div class="user-name">张三 (主管护师)</div>
+      <div id="clock" style="font-family: monospace; font-size: 16px; color: var(--primary);">14:30:05</div>
+    </div>
+  </header>
+
+  <!-- 取用场景 -->
+  <main class="scene active">
+    <!-- 顶部控制区：增加间距，去图标 -->
+    <section class="control-panel">
+      <div class="action-row">
+        <div class="btn-action primary">开始盘点扫描</div>
+        <div class="btn-action warn" onclick="openModal()">确认提交取用</div>
+        <div class="btn-action">提交并退出系统</div>
+      </div>
+
+      <!-- 术间选择：精密文字条 -->
+      <div class="location-section">
+        <div class="location-label">目标位置 (术间选择)</div>
+        <div class="location-grid">
+          <div class="loc-chip active">手术室 A101</div>
+          <div class="loc-chip">手术室 A102</div>
+          <div class="loc-chip">手术室 A103</div>
+          <div class="loc-chip">手术室 A104</div>
+          <div class="loc-chip">手术室 A105</div>
+          <div class="loc-chip">急诊科 01</div>
+          <div class="loc-chip">急诊科 02</div>
+          <div class="loc-chip">住院部 2F-A</div>
+          <div class="loc-chip">ICU 监护中心</div>
+          <div class="loc-chip">门诊化验室</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 核心表格：强化数据文字 -->
+    <section class="table-container">
+      <div class="table-head">
+        <span>耗材名称</span><span>规格型号</span><span>生产批号</span><span>货柜位</span><span>数量</span><span>RFID 标识</span><span>操作</span>
+      </div>
+      <div class="table-body">
+        <div class="table-row">
+          <span class="val-main">碘伏棉签</span><span>10支/包</span><span>P202601</span><span>柜层 A-01</span><span class="val-qty">1</span><span class="val-tag">ID:9A2FB0</span><span class="btn-remove">移除</span>
+        </div>
+        <div class="table-row">
+          <span class="val-main">无菌手套 (M)</span><span>100只/盒</span><span>G113-X7</span><span>柜层 B-03</span><span class="val-qty">1</span><span class="val-tag">ID:7CD1E4</span><span class="btn-remove">移除</span>
+        </div>
+        <div class="table-row">
+          <span class="val-main">医用透气胶带</span><span>2.5cm x 5m</span><span>S889-W2</span><span>柜层 A-05</span><span class="val-qty">2</span><span class="val-tag">ID:5FA8CC</span><span class="btn-remove">移除</span>
+        </div>
+      </div>
+
+      <!-- 分页与统计：全文字分页 -->
+      <div class="pager">
+        <div class="pager-info">当前共计识别到<b>3</b>项耗材，合计<b>4</b>个单位</div>
+        <div class="pager-btns">
+          <span class="text-link">首页</span>
+          <span class="text-link">上一页</span>
+          <span style="color:var(--text-dim); font-size:12px;">PAGE 1 / 1</span>
+          <span class="text-link">下一页</span>
+          <span class="text-link">末页</span>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer-cancel">
+        <button class="btn-cancel-text" onclick="location.reload()">取消本次操作并返回</button>
+    </footer>
+  </main>
+
+  <script>
+    function openModal() { document.getElementById('confirm-modal').classList.add('active'); }
+    function closeModal() { document.getElementById('confirm-modal').classList.remove('active'); }
+    function finish() { alert('记录已成功提交'); closeModal(); }
+
+    document.querySelectorAll('.loc-chip').forEach(chip => {
+      chip.onclick = function() {
+        document.querySelectorAll('.loc-chip').forEach(c => c.classList.remove('active'));
+        this.classList.add('active');
+      }
+    });
+
+    setInterval(() => {
+      const now = new Date();
+      document.getElementById('clock').innerText = now.toTimeString().split(' ')[0];
+    }, 1000);
+  </script>
+</body>
+</html>

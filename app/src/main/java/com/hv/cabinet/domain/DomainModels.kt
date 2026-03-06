@@ -64,7 +64,9 @@ data class InventoryCoreState(
     val isSubmitting: Boolean = false,
     val message: UiMessage = UiMessage(),
     val userName: String = "",
-    val userRole: String = ""
+    val userRole: String = "",
+    val mqttConnected: Boolean? = null,
+    val mqttStatusText: String = "MQTT 探测中"
 ) {
     val canStart: Boolean
         get() = !isSubmitting && !isInventoryBusy && flowState != InventoryFlowState.Starting && flowState != InventoryFlowState.WaitingAck

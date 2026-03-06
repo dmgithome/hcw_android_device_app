@@ -108,4 +108,6 @@ data class ReturnUiState(
     val canSubmit get() = core.canSubmit
     val userName get() = core.userName
     val userRole get() = core.userRole
+    val mqttConnected get() = core.mqttConnected
+    val mqttStatusText get() = core.mqttStatusText
 }

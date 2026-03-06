@@ -13,14 +13,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
 import com.hv.cabinet.ui.theme.CabinetSpacing
+import com.hv.cabinet.ui.theme.LegacyPanelBorder
+import com.hv.cabinet.ui.theme.LegacyPanelFill
 
 @Composable
 fun TransparentPanel(
     modifier: Modifier = Modifier,
     shape: Shape = RoundedCornerShape(CabinetSpacing.cardRadius),
-    startColor: Color = Color(0x331B4E88),
-    endColor: Color = Color(0x220A1E37),
-    borderColor: Color = Color(0x6652C7EA),
+    startColor: Color = LegacyPanelFill,
+    endColor: Color = LegacyPanelFill,
+    borderColor: Color = LegacyPanelBorder,
     contentPadding: PaddingValues = PaddingValues(CabinetSpacing.sectionGap),
     content: @Composable () -> Unit
 ) {

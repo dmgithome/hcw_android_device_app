@@ -1,38 +1,26 @@
 package com.hv.cabinet.feature.home
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.hv.cabinet.core.PerfMonitor
-import com.hv.cabinet.ui.components.AppScaffold
-import com.hv.cabinet.ui.components.AppScaffoldVariant
-import com.hv.cabinet.ui.components.FeatureCard
-import com.hv.cabinet.ui.layout.rememberCabinetWindowSpec
+import com.hv.cabinet.ui.components.AuraScreen
+import com.hv.cabinet.ui.components.AuraSurface
+import com.hv.cabinet.ui.theme.*
 
 @Composable
 fun HomeScreen(
@@ -43,147 +31,160 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val state = viewModel.state.collectAsStateWithLifecycle().value
-    val windowSpec = rememberCabinetWindowSpec()
 
     LaunchedEffect(active) {
         if (active) {
             viewModel.consumeRouteLock()
-            PerfMonitor.mark("home_interactive")
         }
     }
 
-    AppScaffold(
+    AuraScreen(
         title = "耗材屋",
-        subtitle = listOf(state.userName, state.userRole).filter { it.isNotBlank() }.joinToString("  ·  ").ifBlank { "设备主界面" },
-        variant = AppScaffoldVariant.Home,
-        actions = {
-            TextButton(
-                onClick = { viewModel.showLogoutDialog(true) },
-                colors = ButtonDefaults.textButtonColors(
-                    contentColor = MaterialTheme.colorScheme.error
-                )
-            ) {
-                Text("退出登录")
-            }
-        }
-    ) { padding ->
-        Box(
-            modifier = Modifier
-                .padding(padding)
-                .fillMaxSize(),
-            contentAlignment = Alignment.TopCenter
-        ) {
-            Column(
+        subtitle = "智能管理终端",
+        operatorInfo = "${state.userName} - ${state.userRole}",
+        mqttStatusText = state.mqttStatusText,
+        mqttConnected = state.mqttConnected,
+        topRightAction = {
+            Text(
+                text = "退出登录",
+                color = DangerStart.copy(alpha = 0.85f),
+                style = CabinetTypography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
                 modifier = Modifier
-                    .fillMaxSize()
-                    .widthIn(
-                        max = if (windowSpec.constrainContentWidthInPortrait) {
-                            windowSpec.portraitMaxContentWidth
-                        } else {
-                            Dp.Unspecified
-                        }
+                    .background(
+                        color = DangerStart.copy(alpha = 0.1f),
+                        shape = RoundedCornerShape(999.dp)
                     )
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(windowSpec.panelSpacing)
-            ) {
-                if (windowSpec.isWideLandscape) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(windowSpec.panelSpacing)
-                    ) {
-                        FeatureCard(
-                            title = "耗材取用",
-                            subtitle = "进入取用流程，支持 RFID 与扫码；需先选择目标位置再确认提交",
-                            onClick = { viewModel.toTake(onNavigateTake) },
-                            onPress = { viewModel.markCardPressed("take") },
-                            modifier = Modifier.weight(1f),
-                            accent = Color(0xFF52C7EA),
-                            minHeight = windowSpec.featureCardMinHeight + 28.dp
-                        )
-
-                        FeatureCard(
-                            title = "耗材归还",
-                            subtitle = "进入归还流程，支持 RFID 与扫码；归还位置由系统自动推断",
-                            onClick = { viewModel.toReturn(onNavigateReturn) },
-                            onPress = { viewModel.markCardPressed("return") },
-                            modifier = Modifier.weight(1f),
-                            accent = Color(0xFF55C68E),
-                            minHeight = windowSpec.featureCardMinHeight + 28.dp
-                        )
-                    }
-                } else {
-                    FeatureCard(
-                        title = "耗材取用",
-                        subtitle = "进入取用流程，支持 RFID 与扫码；目标位置为选择，不是填写",
-                        onClick = { viewModel.toTake(onNavigateTake) },
-                        onPress = { viewModel.markCardPressed("take") },
-                        accent = Color(0xFF52C7EA),
-                        minHeight = windowSpec.featureCardMinHeight
+                    .border(
+                        width = CabinetSpacing.borderThin,
+                        color = DangerStart.copy(alpha = 0.35f),
+                        shape = RoundedCornerShape(999.dp)
                     )
-
-                    FeatureCard(
-                        title = "耗材归还",
-                        subtitle = "进入归还流程，支持 RFID 与扫码；归还位置由后端自动推断",
-                        onClick = { viewModel.toReturn(onNavigateReturn) },
-                        onPress = { viewModel.markCardPressed("return") },
-                        accent = Color(0xFF55C68E),
-                        minHeight = windowSpec.featureCardMinHeight
-                    )
-                }
-            }
-        }
-    }
-
-    // Logout confirmation overlay (Box overlay instead of AlertDialog)
-    if (active && state.showLogoutDialog) {
+                    .padding(horizontal = CabinetSpacing.md, vertical = CabinetSpacing.sm)
+                    .clickable { viewModel.logout(onLogout) }
+            )
+        },
+        onCancel = null // 主页不需要底部返回
+    ) {
+        // 功能选择区（居中且收窄，避免双卡片占满屏幕）
         Box(
             modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0x88000000))
-                .clickable { viewModel.showLogoutDialog(false) },
+                .fillMaxWidth()
+                .weight(1f),
             contentAlignment = Alignment.Center
         ) {
-            Surface(
+            Row(
                 modifier = Modifier
-                    .widthIn(max = 400.dp)
-                    .clickable(enabled = false, onClick = {}),
-                shape = RoundedCornerShape(18.dp),
-                color = Color(0xFF0E1E34),
-                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x4452C7EA))
+                    .fillMaxWidth(0.9f)
+                    .heightIn(max = CabinetSpacing.homeCardMaxHeight),
+                horizontalArrangement = Arrangement.spacedBy(CabinetSpacing.homeCardGap)
             ) {
-                Column(
-                    modifier = Modifier.padding(24.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    Text(
-                        "确认退出登录",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Text(
-                        "退出后需要重新登录，是否继续？",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        TextButton(onClick = { viewModel.showLogoutDialog(false) }) {
-                            Text("取消")
-                        }
-                        TextButton(
-                            onClick = { viewModel.logout(onLogout) },
-                            colors = ButtonDefaults.textButtonColors(
-                                contentColor = MaterialTheme.colorScheme.error
-                            )
-                        ) {
-                            Text("确认")
-                        }
-                    }
-                }
+                AuraFeatureCard(
+                    title = "耗材取用",
+                    tag = "取用流程",
+                    description = "扫描已在库耗材，选择目标位置后提交取用记录。",
+                    accentColor = PrimaryStart,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
+                    onClick = { viewModel.toTake(onNavigateTake) }
+                )
+
+                AuraFeatureCard(
+                    title = "耗材归还",
+                    tag = "归还流程",
+                    description = "扫描需归还耗材，系统自动匹配归还位置后提交记录。",
+                    accentColor = AccentMint,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
+                    onClick = { viewModel.toReturn(onNavigateReturn) }
+                )
             }
+        }
+
+        // ADS 统一页脚
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = CabinetSpacing.lg),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "终端编号：HCW-TERM-082 · 系统运行正常",
+                color = TextDim.copy(alpha = 0.65f),
+                style = CabinetTypography.bodySmall,
+                fontFamily = FontFamily.Monospace
+            )
+        }
+    }
+}
+
+@Composable
+private fun AuraFeatureCard(
+    title: String,
+    tag: String,
+    description: String,
+    accentColor: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    AuraSurface(
+        modifier = modifier
+            .fillMaxHeight()
+            .clickable(onClick = onClick)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(CabinetSpacing.md)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = tag,
+                    color = accentColor.copy(alpha = 0.78f),
+                    style = CabinetTypography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 0.8.sp
+                )
+                Text(
+                    text = if (title.contains("取用")) "01" else "02",
+                    color = accentColor.copy(alpha = 0.38f),
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace
+                )
+            }
+            HorizontalDivider(
+                color = accentColor.copy(alpha = 0.22f),
+                thickness = CabinetSpacing.borderThin
+            )
+            Text(
+                text = title,
+                color = accentColor,
+                fontSize = 44.sp,
+                lineHeight = 48.sp,
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = 1.sp
+            )
+            Text(
+                text = description,
+                color = TextDim,
+                style = CabinetTypography.bodyMedium,
+                lineHeight = 24.sp,
+                fontWeight = FontWeight.Medium,
+                maxLines = 3
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            Text(
+                text = "点击进入",
+                color = accentColor.copy(alpha = 0.9f),
+                style = CabinetTypography.labelMedium,
+                fontWeight = FontWeight.SemiBold
+            )
         }
     }
 }
