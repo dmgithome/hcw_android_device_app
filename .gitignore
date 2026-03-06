@@ -2,6 +2,9 @@
 .gradle
 /local.properties
 /.idea
+.project
+.classpath
+.settings/
 .DS_Store
 /build
 /captures
@@ -9,3 +12,4 @@
 .cxx
 **/build
 /evidence/
+server.log
