@@ -1,44 +1,80 @@
 package com.hv.cabinet.ui.components
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.hv.cabinet.domain.InventoryFlowState
+import com.hv.cabinet.ui.theme.AccentMint
 import com.hv.cabinet.ui.theme.CabinetSpacing
 import com.hv.cabinet.ui.theme.CabinetTypography
+import com.hv.cabinet.ui.theme.DangerStart
 import com.hv.cabinet.ui.theme.GlassBorder
+import com.hv.cabinet.ui.theme.HighlightStart
+import com.hv.cabinet.ui.theme.PanelBgSoft
+import com.hv.cabinet.ui.theme.PrimaryStart
+import com.hv.cabinet.ui.theme.TextSubtle
 
 @Composable
 fun InventoryStatusPill(
     state: InventoryFlowState,
     modifier: Modifier = Modifier
 ) {
-    val (bg, fg) = when (state) {
-        InventoryFlowState.Inventorying -> Color(0x2655C68E) to Color(0xFF8BF0BA)
+    val (bg, border, fg) = when (state) {
+        InventoryFlowState.Inventorying -> Triple(AccentMint.copy(alpha = 0.10f), AccentMint.copy(alpha = 0.18f), AccentMint)
         InventoryFlowState.WaitingAck,
-        InventoryFlowState.Starting -> Color(0x2652C7EA) to Color(0xFF8EDCFF)
-        InventoryFlowState.Error -> Color(0x33E16969) to Color(0xFFFFA7A7)
-        InventoryFlowState.Completed -> Color(0x26E5B24A) to Color(0xFFFFD88C)
-        else -> Color(0x221B4E88) to Color(0xFFC7D4E8)
+        InventoryFlowState.Starting -> Triple(HighlightStart.copy(alpha = 0.08f), HighlightStart.copy(alpha = 0.18f), HighlightStart)
+        InventoryFlowState.Error -> Triple(DangerStart.copy(alpha = 0.10f), DangerStart.copy(alpha = 0.18f), DangerStart)
+        InventoryFlowState.Completed -> Triple(PrimaryStart.copy(alpha = 0.10f), PrimaryStart.copy(alpha = 0.18f), PrimaryStart)
+        else -> Triple(PanelBgSoft.copy(alpha = 0.86f), GlassBorder.copy(alpha = 0.9f), TextSubtle)
     }
+    val animatedBg by animateColorAsState(
+        targetValue = bg,
+        animationSpec = tween(durationMillis = 220),
+        label = "inventoryStatusBackground"
+    )
+    val animatedBorder by animateColorAsState(
+        targetValue = border,
+        animationSpec = tween(durationMillis = 220),
+        label = "inventoryStatusBorder"
+    )
+    val animatedFg by animateColorAsState(
+        targetValue = fg,
+        animationSpec = tween(durationMillis = 220),
+        label = "inventoryStatusForeground"
+    )
 
     Row(
         modifier = modifier
-            .background(bg, RoundedCornerShape(999.dp))
-            .border(CabinetSpacing.borderThin, GlassBorder, RoundedCornerShape(999.dp))
-            .padding(horizontal = 12.dp, vertical = 5.dp)
+            .background(animatedBg, RoundedCornerShape(999.dp))
+            .border(CabinetSpacing.borderThin, animatedBorder, RoundedCornerShape(999.dp))
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(7.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
+        Box(
+            modifier = Modifier
+                .background(animatedFg, RoundedCornerShape(999.dp))
+                .size(6.dp)
+        )
         Text(
             text = "状态：${state.label()}",
             style = CabinetTypography.bodySmall,
-            color = fg
+            color = animatedFg,
+            fontWeight = FontWeight.Medium
         )
     }
 }

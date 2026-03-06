@@ -3,6 +3,7 @@ package com.hv.cabinet.feature.login
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -11,7 +12,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
@@ -47,95 +50,82 @@ fun LoginScreen(
             .background(BgDark)
             .background(
                 brush = androidx.compose.ui.graphics.Brush.radialGradient(
-                    0.0f to BgAuraCore,
-                    1.0f to BgDark,
-                    center = androidx.compose.ui.geometry.Offset(500f, 500f),
-                    radius = 1500f
+                    0.0f to Color.White.copy(alpha = 0.04f),
+                    1.0f to Color.Transparent,
+                    center = androidx.compose.ui.geometry.Offset(760f, 0f),
+                    radius = 980f
                 )
             )
             .imePadding()
     ) {
         // 右上角设置
-        Text(
-            text = "服务器设置",
-            color = TextDim.copy(alpha = 0.9f),
-            style = CabinetTypography.labelMedium,
-            fontWeight = FontWeight.SemiBold,
+        AuraEntrance(
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(CabinetSpacing.xl)
-                .background(Color.White.copy(alpha = 0.05f), RoundedCornerShape(999.dp))
-                .border(CabinetSpacing.borderThin, GlassBorder, RoundedCornerShape(999.dp))
-                .padding(horizontal = CabinetSpacing.md, vertical = CabinetSpacing.sm)
-                .clickable { showSettings = true }
-        )
+                .padding(CabinetSpacing.xl),
+            delayMillis = 40,
+            initialOffsetY = 12f,
+            initialScale = 0.992f
+        ) {
+            Text(
+                text = "服务器设置",
+                color = TextSubtle,
+                style = CabinetTypography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier
+                    .background(Color.White.copy(alpha = 0.05f), RoundedCornerShape(999.dp))
+                    .border(CabinetSpacing.borderThin, Color.White.copy(alpha = 0.08f), RoundedCornerShape(999.dp))
+                    .padding(horizontal = CabinetSpacing.md, vertical = CabinetSpacing.sm)
+                    .clickable { showSettings = true }
+            )
+        }
 
         // 居中登录卡片 (ADS 抽象)
-        Box(
+        AuraEntrance(
             modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
+            delayMillis = 90,
+            initialOffsetY = 26f,
+            initialScale = 0.978f
         ) {
-            AuraSurface(
-                modifier = Modifier.widthIn(max = CabinetSpacing.loginCardMaxWidth),
-                contentPadding = PaddingValues(CabinetSpacing.massive)
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(CabinetSpacing.xl)
+                AuraSurface(
+                    variant = AuraSurfaceVariant.SoftGlow,
+                    modifier = Modifier.widthIn(max = CabinetSpacing.loginCardMaxWidth),
+                    contentPadding = PaddingValues(22.dp)
                 ) {
-                    // 品牌标识
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = "身份授权",
-                            color = TextMain,
-                            style = CabinetTypography.displaySmall,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 2.sp
-                        )
-                        Spacer(modifier = Modifier.height(CabinetSpacing.sm))
-                        Text(
-                            text = "请完成安全验证以开始工作",
-                            color = TextDim,
-                            style = CabinetTypography.bodyMedium,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
+                    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                        val isWideLayout = maxWidth >= 760.dp
 
-                    // 登录方式切换 (ADS 抽象标签)
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(CabinetSpacing.md)
-                    ) {
-                        AuraLocationChip(
-                            text = "账号登录",
-                            isSelected = state.tab == LoginTab.Account,
-                            onClick = { viewModel.updateTab(LoginTab.Account) },
-                            modifier = Modifier.weight(1f)
-                        )
-                        AuraLocationChip(
-                            text = "NFC 登录",
-                            isSelected = state.tab == LoginTab.Nfc,
-                            onClick = { viewModel.updateTab(LoginTab.Nfc) },
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-
-                    // 表单
-                    if (state.tab == LoginTab.Account) {
-                        AccountLoginForm(state, viewModel)
-                    } else {
-                        NfcLoginForm()
-                    }
-
-                    // 消息反馈
-                    if (state.message.text.isNotBlank()) {
-                        Text(
-                            text = state.message.text,
-                            color = if (state.message.level == MessageLevel.Error) DangerStart else AccentMint,
-                            style = CabinetTypography.bodySmall,
-                            fontWeight = FontWeight.Bold,
-                            textAlign = TextAlign.Center
-                        )
+                        if (isWideLayout) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(CabinetSpacing.lg),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                LoginHeroPane(
+                                    modifier = Modifier.weight(1.15f)
+                                )
+                                LoginFormPane(
+                                    state = state,
+                                    viewModel = viewModel,
+                                    modifier = Modifier.weight(0.92f)
+                                )
+                            }
+                        } else {
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(CabinetSpacing.lg)
+                            ) {
+                                LoginHeroPane()
+                                LoginFormPane(
+                                    state = state,
+                                    viewModel = viewModel
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -144,6 +134,158 @@ fun LoginScreen(
         if (showSettings) {
             SettingsOverlay(state, viewModel, onDismiss = { showSettings = false })
         }
+    }
+}
+
+@Composable
+private fun LoginHeroPane(modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(CabinetSpacing.lg)
+    ) {
+        Text(
+            text = "HCW Secure Device",
+            color = TextDim,
+            style = CabinetTypography.labelMedium,
+            fontWeight = FontWeight.Medium,
+            letterSpacing = 1.8.sp,
+            fontFamily = FontFamily.Monospace
+        )
+        Text(
+            text = "开始前先完成一次可信验证",
+            color = TextMain,
+            style = CabinetTypography.displaySmall,
+            fontWeight = FontWeight.SemiBold,
+            lineHeight = 42.sp
+        )
+        Text(
+            text = "更像一台高端终端，而不是后台表单。焦点只保留在身份、状态和进入系统三个动作。",
+            color = TextSubtle,
+            style = CabinetTypography.bodyMedium,
+            lineHeight = 26.sp
+        )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(CabinetSpacing.sm)
+        ) {
+            LoginMiniStat("账号登录")
+            LoginMiniStat("NFC 常驻监听")
+            LoginMiniStat("设备配置")
+        }
+    }
+}
+
+@Composable
+private fun LoginMiniStat(text: String) {
+    Text(
+        text = text,
+        color = TextSubtle,
+        style = CabinetTypography.labelMedium,
+        fontWeight = FontWeight.Medium,
+        modifier = Modifier
+            .background(Color.White.copy(alpha = 0.04f), RoundedCornerShape(14.dp))
+            .border(CabinetSpacing.borderThin, Color.White.copy(alpha = 0.06f), RoundedCornerShape(14.dp))
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+    )
+}
+
+@Composable
+private fun LoginFormPane(
+    state: LoginUiState,
+    viewModel: LoginViewModel,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .background(Color.White.copy(alpha = 0.025f), RoundedCornerShape(20.dp))
+            .border(CabinetSpacing.borderThin, Color.White.copy(alpha = 0.06f), RoundedCornerShape(20.dp))
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(CabinetSpacing.md)
+    ) {
+        LoginModeSelector(
+            currentTab = state.tab,
+            onSelect = viewModel::updateTab
+        )
+
+        if (state.tab == LoginTab.Account) {
+            AccountLoginForm(state, viewModel)
+        } else {
+            NfcLoginForm()
+        }
+
+        if (state.message.text.isNotBlank()) {
+            Text(
+                text = state.message.text,
+                color = if (state.message.level == MessageLevel.Error) DangerStart else AccentMint,
+                style = CabinetTypography.bodySmall,
+                fontWeight = FontWeight.Medium,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
+}
+
+@Composable
+private fun LoginModeSelector(
+    currentTab: LoginTab,
+    onSelect: (LoginTab) -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(CabinetSpacing.sm)
+    ) {
+        LoginModeOption(
+            text = "账号登录",
+            selected = currentTab == LoginTab.Account,
+            modifier = Modifier.weight(1f),
+            onClick = { onSelect(LoginTab.Account) }
+        )
+        LoginModeOption(
+            text = "NFC 登录",
+            selected = currentTab == LoginTab.Nfc,
+            modifier = Modifier.weight(1f),
+            onClick = { onSelect(LoginTab.Nfc) }
+        )
+    }
+}
+
+@Composable
+private fun LoginModeOption(
+    text: String,
+    selected: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = modifier
+            .height(46.dp)
+            .background(
+                brush = if (selected) {
+                    Brush.verticalGradient(listOf(PrimaryStart, PrimaryEnd))
+                } else {
+                    Brush.verticalGradient(
+                        listOf(
+                            Color.White.copy(alpha = 0.04f),
+                            Color.White.copy(alpha = 0.02f)
+                        )
+                    )
+                },
+                shape = RoundedCornerShape(16.dp)
+            )
+            .border(
+                width = CabinetSpacing.borderThin,
+                color = if (selected) Color.Transparent else Color.White.copy(alpha = 0.06f),
+                shape = RoundedCornerShape(16.dp)
+            )
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = text,
+            color = if (selected) PrimaryInk else TextDim,
+            style = CabinetTypography.labelLarge,
+            fontWeight = FontWeight.SemiBold
+        )
     }
 }
 
@@ -174,12 +316,14 @@ private fun AccountLoginForm(state: LoginUiState, viewModel: LoginViewModel) {
 @Composable
 private fun NfcLoginForm() {
     Column(
-        modifier = Modifier.fillMaxWidth().padding(vertical = CabinetSpacing.lg),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = CabinetSpacing.lg),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(CabinetSpacing.md)
     ) {
-        Text(text = "请刷 NFC 卡自动登录", color = TextMain, style = CabinetTypography.titleMedium, fontWeight = FontWeight.Bold)
-        Text(text = "正在实时监听读卡器信号...", color = TextDim, style = CabinetTypography.bodyMedium)
+        Text(text = "请刷 NFC 卡自动登录", color = TextMain, style = CabinetTypography.titleMedium, fontWeight = FontWeight.SemiBold)
+        Text(text = "正在实时监听读卡器信号...", color = TextSubtle, style = CabinetTypography.bodyMedium)
         Spacer(modifier = Modifier.height(CabinetSpacing.sm))
         LinearProgressIndicator(
             modifier = Modifier.fillMaxWidth().height(CabinetSpacing.progressLineHeight),
@@ -208,12 +352,12 @@ private fun ADSTextField(
         visualTransformation = if (isPassword) PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
         shape = RoundedCornerShape(CabinetSpacing.buttonRadius),
         colors = OutlinedTextFieldDefaults.colors(
-            focusedTextColor = Color.White,
-            unfocusedTextColor = Color.White,
-            focusedBorderColor = PrimaryStart,
-            unfocusedBorderColor = GlassBorder,
-            focusedContainerColor = Color.White.copy(alpha = 0.03f),
-            unfocusedContainerColor = Color.Transparent,
+            focusedTextColor = TextMain,
+            unfocusedTextColor = TextMain,
+            focusedBorderColor = PrimaryStart.copy(alpha = 0.72f),
+            unfocusedBorderColor = Color.White.copy(alpha = 0.06f),
+            focusedContainerColor = Color.White.copy(alpha = 0.05f),
+            unfocusedContainerColor = Color.White.copy(alpha = 0.04f),
             cursorColor = PrimaryStart
         )
     )
@@ -238,11 +382,20 @@ private fun SettingsOverlay(state: LoginUiState, viewModel: LoginViewModel, onDi
         }
     }
 
-    Box(
-        modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.85f)).clickable(onClick = onDismiss),
-        contentAlignment = Alignment.Center
+    AuraModalLayer(
+        scrimAlpha = 0.85f,
+        onScrimClick = onDismiss
     ) {
-        AuraSurface(modifier = Modifier.widthIn(max = CabinetSpacing.settingsCardMaxWidth).clickable(enabled = false) {}) {
+        AuraSurface(
+            variant = AuraSurfaceVariant.SoftGlow,
+            modifier = Modifier
+                .widthIn(max = CabinetSpacing.settingsCardMaxWidth)
+                .clickable(
+                    indication = null,
+                    interactionSource = remember { MutableInteractionSource() },
+                    onClick = {}
+                )
+        ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -303,13 +456,13 @@ private fun SettingsOverlay(state: LoginUiState, viewModel: LoginViewModel, onDi
                         MessageLevel.Error -> DangerStart
                         MessageLevel.Warning -> WarnStart
                         MessageLevel.Success -> AccentMint
-                        MessageLevel.Info -> PrimaryStart
+                        MessageLevel.Info -> TextSubtle
                     }
                     Text(
                         text = state.message.text,
                         color = msgColor,
                         style = CabinetTypography.bodySmall,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.Medium
                     )
                 }
 
@@ -377,15 +530,15 @@ private fun ConfigSwitchRow(
             )
         }
         Switch(
-            checked = checked,
-            enabled = enabled,
-            onCheckedChange = onCheckedChange,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = Color.White,
-                checkedTrackColor = PrimaryStart,
-                uncheckedThumbColor = Color.White,
-                uncheckedTrackColor = BtnBaseStart
-            )
+                checked = checked,
+                enabled = enabled,
+                onCheckedChange = onCheckedChange,
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = BgDark,
+                    checkedTrackColor = PrimaryStart,
+                    uncheckedThumbColor = TextMain,
+                    uncheckedTrackColor = BtnBaseStart
+                )
         )
     }
 }

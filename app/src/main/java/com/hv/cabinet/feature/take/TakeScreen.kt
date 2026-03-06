@@ -98,94 +98,116 @@ fun TakeScreen(
         onCancel = onBack
     ) {
         // 1. 顶部控制面板 (抽象为 AuraSurface)
-        AuraSurface(modifier = Modifier.fillMaxWidth()) {
-            Column(verticalArrangement = Arrangement.spacedBy(CabinetSpacing.lg)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(CabinetSpacing.actionGap)
-                ) {
-                    AuraButton(
-                        text = if (state.isInventoryBusy) "盘点中..." else "开始盘点扫描",
-                        style = AuraButtonStyle.Primary,
-                        modifier = Modifier.weight(1f).height(CabinetSpacing.actionButtonHeight),
-                        onClick = viewModel::startInventory
-                    )
-                    AuraButton(
-                        text = "确认提交记录",
-                        style = AuraButtonStyle.Highlight,
-                        enabled = state.canSubmit && state.targetLocationId.isNotBlank(),
-                        modifier = Modifier.weight(1f).height(CabinetSpacing.actionButtonHeight),
-                        onClick = { showConfirmModal = true }
-                    )
-                    AuraButton(
-                        text = "提交并退出系统",
-                        style = AuraButtonStyle.Danger,
-                        enabled = state.canSubmit && state.targetLocationId.isNotBlank(),
-                        modifier = Modifier.weight(1f).height(CabinetSpacing.actionButtonHeight),
-                        onClick = { viewModel.submitAndLogout(onLogout) }
-                    )
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    InventoryStatusPill(state = state.flowState)
-                    Text(
-                        text = if (state.targetLocationId.isBlank()) "请先选择目标位置" else "目标位置：${state.targetLocationName}",
-                        color = if (state.targetLocationId.isBlank()) WarnStart else TextDim,
-                        style = CabinetTypography.bodySmall
-                    )
-                }
-
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(CabinetSpacing.md),
-                    contentPadding = PaddingValues(bottom = CabinetSpacing.xs)
-                ) {
-                    items(state.targetLocationOptions) { option ->
-                        AuraLocationChip(
-                            text = option.name,
-                            isSelected = option.id == state.targetLocationId,
-                            onClick = { viewModel.updateTargetLocation(option.id) }
+        AuraEntrance(
+            modifier = Modifier.fillMaxWidth(),
+            entranceKey = active,
+            delayMillis = 40,
+            initialOffsetY = 16f,
+            initialScale = 0.992f
+        ) {
+            AuraSurface(
+                modifier = Modifier.fillMaxWidth(),
+                variant = AuraSurfaceVariant.Neutral
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(CabinetSpacing.lg)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(CabinetSpacing.actionGap)
+                    ) {
+                        AuraButton(
+                            text = if (state.isInventoryBusy) "盘点中..." else "开始盘点扫描",
+                            style = AuraButtonStyle.Normal,
+                            modifier = Modifier.weight(1f).height(CabinetSpacing.actionButtonHeight),
+                            onClick = viewModel::startInventory
                         )
+                        AuraButton(
+                            text = "确认提交记录",
+                            style = AuraButtonStyle.Primary,
+                            enabled = state.canSubmit && state.targetLocationId.isNotBlank(),
+                            modifier = Modifier.weight(1f).height(CabinetSpacing.actionButtonHeight),
+                            onClick = { showConfirmModal = true }
+                        )
+                        AuraButton(
+                            text = "提交并退出系统",
+                            style = AuraButtonStyle.Highlight,
+                            enabled = state.canSubmit && state.targetLocationId.isNotBlank(),
+                            modifier = Modifier.weight(1f).height(CabinetSpacing.actionButtonHeight),
+                            onClick = { viewModel.submitAndLogout(onLogout) }
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        InventoryStatusPill(state = state.flowState)
+                        Text(
+                            text = if (state.targetLocationId.isBlank()) "请先选择目标位置" else "目标位置：${state.targetLocationName}",
+                            color = if (state.targetLocationId.isBlank()) WarnStart else TextSubtle,
+                            style = CabinetTypography.bodySmall
+                        )
+                    }
+
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(CabinetSpacing.md),
+                        contentPadding = PaddingValues(bottom = CabinetSpacing.xs)
+                    ) {
+                        items(state.targetLocationOptions) { option ->
+                            AuraLocationChip(
+                                text = option.name,
+                                isSelected = option.id == state.targetLocationId,
+                                onClick = { viewModel.updateTargetLocation(option.id) }
+                            )
+                        }
                     }
                 }
             }
         }
 
-        AuraSurface(
-            modifier = Modifier.fillMaxWidth().weight(1f),
-            contentPadding = PaddingValues()
+        AuraEntrance(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            entranceKey = "take-table-$active",
+            delayMillis = 110,
+            initialOffsetY = 22f,
+            initialScale = 0.988f
         ) {
-            Column {
-                ConsumableDataTable(
-                    items = pageItems,
-                    conflictRfids = state.conflictRfids,
-                    onRemove = viewModel::removeItem,
-                    variant = TableVariant.Take,
-                    modifier = Modifier.fillMaxWidth().weight(1f)
-                )
+            AuraSurface(
+                modifier = Modifier.fillMaxSize(),
+                variant = AuraSurfaceVariant.Neutral,
+                contentPadding = PaddingValues()
+            ) {
+                Column {
+                    ConsumableDataTable(
+                        items = pageItems,
+                        conflictRfids = state.conflictRfids,
+                        onRemove = viewModel::removeItem,
+                        variant = TableVariant.Take,
+                        modifier = Modifier.fillMaxWidth().weight(1f)
+                    )
 
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(CabinetSpacing.footerBarHeight)
-                        .background(PanelBgSoft)
-                        .padding(horizontal = CabinetSpacing.lg),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "共计识别到 ${total} 项耗材",
-                        color = TextDim,
-                        style = CabinetTypography.bodySmall
-                    )
-                    PaginationFooter(
-                        total = total,
-                        currentPage = clampedPage,
-                        onPageChange = { currentPage = it }
-                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(CabinetSpacing.footerBarHeight)
+                            .background(FooterSurface)
+                            .padding(horizontal = CabinetSpacing.lg),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "共计识别到 ${total} 项耗材",
+                            color = TextSubtle,
+                            style = CabinetTypography.bodySmall
+                        )
+                        PaginationFooter(
+                            total = total,
+                            currentPage = clampedPage,
+                            onPageChange = { currentPage = it }
+                        )
+                    }
                 }
             }
         }

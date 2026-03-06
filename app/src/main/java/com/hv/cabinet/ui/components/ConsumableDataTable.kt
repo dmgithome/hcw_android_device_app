@@ -44,8 +44,8 @@ fun ConsumableDataTable(
         ) {
             Text(
                 text = "暂无扫描项，请先扫码或通过 RFID 添加",
-                color = TextDim,
-                fontSize = 14.sp
+                color = TextSubtle,
+                fontSize = 16.sp
             )
         }
         return
@@ -67,8 +67,8 @@ fun ConsumableDataTable(
                 Text(
                     text = col.header,
                     color = TextDim,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
                     modifier = Modifier.weight(col.weight),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -87,7 +87,7 @@ fun ConsumableDataTable(
                         .fillMaxWidth()
                         .background(
                             when {
-                                isConflict -> DangerStart.copy(alpha = 0.1f)
+                                isConflict -> DangerStart.copy(alpha = 0.08f)
                                 index % 2 == 0 -> Color.Transparent
                                 else -> TableRowAlt
                             }
@@ -101,7 +101,7 @@ fun ConsumableDataTable(
                         }
                     }
                 }
-                HorizontalDivider(color = Color.White.copy(alpha = 0.02f))
+                HorizontalDivider(color = GlassBorder.copy(alpha = 0.46f))
             }
         }
     }
@@ -116,37 +116,37 @@ private fun CellContent(
 ) {
     when (variant) {
         TableVariant.Take -> when (columnIndex) {
-            0 -> Text(item.name, color = TextMain, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            0 -> Text(item.name, color = TextMain, fontSize = 16.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
             1 -> CellText(item.payload.spec)
             2 -> CellText(item.payload.batch)
             3 -> CellText("A-01") // 模拟货位
-            4 -> Text("1", color = PrimaryStart, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            5 -> Text(item.rfid.takeLast(6).uppercase(), color = AccentMint, fontSize = 12.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
+            4 -> Text("1", color = PrimaryStart, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+            5 -> Text(item.rfid.takeLast(6).uppercase(), color = HighlightStart, fontSize = 14.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Medium)
             6 -> Text(
                 "移除",
                 color = DangerStart,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
                 modifier = Modifier
-                    .background(DangerStart.copy(alpha = 0.12f), RoundedCornerShape(999.dp))
+                    .background(DangerStart.copy(alpha = 0.10f), RoundedCornerShape(999.dp))
                     .padding(horizontal = 10.dp, vertical = 4.dp)
                     .clickable { onRemove(item.rfid) }
             )
         }
         TableVariant.Return -> when (columnIndex) {
-            0 -> Text(item.name, color = TextMain, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            0 -> Text(item.name, color = TextMain, fontSize = 16.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
             1 -> CellText(item.payload.spec)
             2 -> CellText(item.payload.batch)
             3 -> CellText("A-01")
-            4 -> Text("1", color = PrimaryStart, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            5 -> Text(item.rfid.takeLast(6).uppercase(), color = AccentMint, fontSize = 12.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
+            4 -> Text("1", color = PrimaryStart, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+            5 -> Text(item.rfid.takeLast(6).uppercase(), color = HighlightStart, fontSize = 14.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Medium)
             6 -> Text(
                 "移除",
                 color = DangerStart,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
                 modifier = Modifier
-                    .background(DangerStart.copy(alpha = 0.12f), RoundedCornerShape(999.dp))
+                    .background(DangerStart.copy(alpha = 0.10f), RoundedCornerShape(999.dp))
                     .padding(horizontal = 10.dp, vertical = 4.dp)
                     .clickable { onRemove(item.rfid) }
             )
@@ -158,8 +158,8 @@ private fun CellContent(
 private fun CellText(text: String) {
     Text(
         text = text.ifBlank { "-" },
-        color = TextDim,
-        fontSize = 14.sp,
+        color = TextSubtle,
+        fontSize = 15.sp,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis
     )

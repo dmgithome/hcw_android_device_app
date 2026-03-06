@@ -31,6 +31,7 @@ import com.hv.cabinet.ui.theme.CabinetTypography
 import com.hv.cabinet.ui.theme.DangerStart
 import com.hv.cabinet.ui.theme.PanelBgSoft
 import com.hv.cabinet.ui.theme.PrimaryStart
+import com.hv.cabinet.ui.theme.TextSubtle
 import com.hv.cabinet.ui.theme.TextDim
 import com.hv.cabinet.ui.theme.TextMain
 import com.hv.cabinet.ui.theme.WarnStart
@@ -63,19 +64,12 @@ fun WarningDialog(
 
     val totalCount = warnings.sumOf { it.count }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.64f))
-            .clickable(
-                indication = null,
-                interactionSource = remember { MutableInteractionSource() },
-                onClick = {}
-            )
-            .padding(CabinetSpacing.massive),
-        contentAlignment = Alignment.Center
+    AuraModalLayer(
+        scrimAlpha = 0.64f,
+        onScrimClick = {}
     ) {
         AuraSurface(
+            variant = AuraSurfaceVariant.SoftGlow,
             modifier = Modifier
                 .widthIn(max = 620.dp)
                 .clickable(
@@ -89,13 +83,12 @@ fun WarningDialog(
                     text = "耗材异常提示",
                     color = TextMain,
                     style = CabinetTypography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp
+                    fontWeight = FontWeight.SemiBold
                 )
 
                 Text(
                     text = "本次扫描共发现 $totalCount 个异常项：",
-                    color = TextDim,
+                    color = TextSubtle,
                     style = CabinetTypography.bodyMedium
                 )
 
@@ -127,25 +120,25 @@ private fun WarningSectionCard(section: WarningSection) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(PanelBgSoft.copy(alpha = 0.9f), shape)
+            .background(Color.White.copy(alpha = 0.04f), shape)
             .border(
                 width = CabinetSpacing.borderThin,
-                color = section.accentColor.copy(alpha = 0.45f),
+                color = section.accentColor.copy(alpha = 0.22f),
                 shape = shape
             )
             .padding(horizontal = CabinetSpacing.md, vertical = CabinetSpacing.sm)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(CabinetSpacing.xs)) {
-            Text(
-                text = section.title,
-                color = section.accentColor,
-                style = CabinetTypography.labelLarge,
-                fontWeight = FontWeight.Bold
-            )
+                Text(
+                    text = section.title,
+                    color = section.accentColor,
+                    style = CabinetTypography.labelLarge,
+                    fontWeight = FontWeight.Medium
+                )
             section.lines.forEach { line ->
                 Text(
                     text = "• $line",
-                    color = TextDim,
+                    color = TextSubtle,
                     style = CabinetTypography.bodySmall
                 )
             }
